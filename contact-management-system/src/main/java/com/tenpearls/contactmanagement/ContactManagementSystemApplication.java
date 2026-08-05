@@ -1,4 +1,4 @@
-package com.example.contact_management_system;
+package com.tenpearls.contactmanagement;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
