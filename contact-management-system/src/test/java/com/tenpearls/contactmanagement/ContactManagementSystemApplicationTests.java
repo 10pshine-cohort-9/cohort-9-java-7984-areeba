@@ -1,4 +1,4 @@
-package com.example.contact_management_system;
+package com.tenpearls.contactmanagement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
