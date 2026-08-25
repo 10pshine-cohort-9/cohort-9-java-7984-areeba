@@ -1,6 +1,7 @@
 package com.tenpearls.contactmanagement.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,6 +30,7 @@ public class User {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @NotBlank
     @Column(nullable = false)
     private String password;
 

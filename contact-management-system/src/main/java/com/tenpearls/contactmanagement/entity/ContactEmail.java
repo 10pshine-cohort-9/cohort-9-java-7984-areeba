@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.entity;
 
 import com.tenpearls.contactmanagement.entity.enums.EmailType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,6 +16,7 @@ public class ContactEmail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(nullable = false)
     private String email;
 

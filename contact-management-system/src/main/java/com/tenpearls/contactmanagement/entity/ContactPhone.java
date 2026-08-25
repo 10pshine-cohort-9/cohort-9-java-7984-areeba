@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.entity;
 
 import com.tenpearls.contactmanagement.entity.enums.PhoneType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,6 +16,7 @@ public class ContactPhone {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 

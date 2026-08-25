@@ -1,6 +1,7 @@
 package com.tenpearls.contactmanagement.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
@@ -15,9 +16,11 @@ public class Contact {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
+    @NotBlank
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
