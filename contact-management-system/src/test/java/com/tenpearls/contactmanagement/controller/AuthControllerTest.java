@@ -15,8 +15,8 @@ import static org.mockito.Mockito.when;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
+import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
 import static org.mockito.Mockito.doThrow;
 import com.tenpearls.contactmanagement.exception.GlobalExceptionHandler;
 
@@ -73,5 +73,21 @@ class AuthControllerTest {
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertEquals("Email is already registered", response.getBody());
+    }
+    @Test
+    void login_shouldReturnResponseForValidCredentials() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("Password123");
+
+        LoginResponse expectedResponse = new LoginResponse(1L, "test@example.com");
+
+        when(authService.login(request)).thenReturn(expectedResponse);
+
+        LoginResponse response = authController.login(request);
+
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        assertEquals("test@example.com", response.getEmail());
     }
 }
