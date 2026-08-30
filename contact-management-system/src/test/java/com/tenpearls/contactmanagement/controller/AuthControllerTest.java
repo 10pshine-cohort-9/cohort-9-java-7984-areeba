@@ -10,6 +10,7 @@ import com.tenpearls.contactmanagement.dto.auth.RegisterRequest;
 import com.tenpearls.contactmanagement.dto.auth.RegisterResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import org.springframework.http.HttpStatus;
@@ -60,16 +61,17 @@ class AuthControllerTest {
                 .when(authService)
                 .register(request);
 
-        try {
-            authController.register(request);
-        } catch (EmailAlreadyRegisteredException exception) {
-            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        EmailAlreadyRegisteredException exception = assertThrows(
+                EmailAlreadyRegisteredException.class,
+                () -> authController.register(request)
+        );
 
-            ResponseEntity<String> response =
-                    handler.handleEmailAlreadyRegistered(exception);
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-            assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-            assertEquals("Email is already registered", response.getBody());
-        }
+        ResponseEntity<String> response =
+                handler.handleEmailAlreadyRegistered(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Email is already registered", response.getBody());
     }
 }
