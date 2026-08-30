@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -64,7 +65,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
 
         assertThrows(
-                IllegalArgumentException.class,
+                EmailAlreadyRegisteredException.class,
                 () -> authService.register(request)
         );
     }
