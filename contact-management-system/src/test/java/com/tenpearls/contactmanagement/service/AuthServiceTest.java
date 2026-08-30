@@ -1,5 +1,6 @@
 package com.tenpearls.contactmanagement.service;
 
+import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
 import com.tenpearls.contactmanagement.dto.auth.RegisterRequest;
 import com.tenpearls.contactmanagement.dto.auth.RegisterResponse;
 import com.tenpearls.contactmanagement.entity.User;
@@ -16,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
+import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
+
+import java.util.Optional;
+
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -69,4 +75,44 @@ class AuthServiceTest {
                 () -> authService.register(request)
         );
     }
+    @Test
+    void login_shouldReturnResponseForValidCredentials() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("Password123");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setPassword("encoded-password");
+
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getPassword(), user.getPassword()))
+                .thenReturn(true);
+
+        LoginResponse response = authService.login(request);
+
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        assertEquals("test@example.com", response.getEmail());
+
+        verify(passwordEncoder).matches(request.getPassword(), user.getPassword());
+    }
+
+    @Test
+    void login_shouldRejectInvalidCredentials() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("WrongPassword");
+
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(request)
+        );
+    }
+
 }
