@@ -25,11 +25,9 @@ public class AuthService {
 
     public RegisterResponse register(RegisterRequest request) {
 
-        logger.info("Registration attempt for email: {}", request.getEmail());
-
+        logger.info("Registration attempt");
         if (userRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Registration failed. Email already registered: {}", request.getEmail());
-
+            logger.warn("Registration failed. Email already registered");
             throw new EmailAlreadyRegisteredException("Email is already registered");        }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
