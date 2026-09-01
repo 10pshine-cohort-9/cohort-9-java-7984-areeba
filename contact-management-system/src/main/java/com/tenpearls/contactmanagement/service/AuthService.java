@@ -8,8 +8,11 @@ import com.tenpearls.contactmanagement.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
+import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
+import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
+import java.util.Optional;
+import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 
 @Service
 public class AuthService {
@@ -45,5 +48,25 @@ public class AuthService {
         response.setEmail(savedUser.getEmail());
 
         return response;
+    }
+    public LoginResponse login(LoginRequest request) {
+
+        logger.info("Login attempt for email: {}", request.getEmail());
+
+        Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+
+        if (userOptional.isEmpty()) {
+            logger.warn("Login failed. User not found for email: {}", request.getEmail());
+            throw new InvalidCredentialsException("Invalid email or password");        }
+
+        User user = userOptional.get();
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            logger.warn("Login failed. Invalid password for email: {}", request.getEmail());
+            throw new InvalidCredentialsException("Invalid email or password");        }
+
+        logger.info("User logged in successfully with id: {}", user.getId());
+
+        return new LoginResponse(user.getId(), user.getEmail());
     }
 }

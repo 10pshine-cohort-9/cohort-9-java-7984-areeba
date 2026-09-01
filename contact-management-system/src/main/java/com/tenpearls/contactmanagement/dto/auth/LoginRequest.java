@@ -7,7 +7,7 @@ import lombok.Setter;
 import jakarta.validation.constraints.Size;
 @Getter
 @Setter
-public class RegisterRequest {
+public class LoginRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Please provide a valid email address")
