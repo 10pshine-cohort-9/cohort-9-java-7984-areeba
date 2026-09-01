@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
-
+import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import java.util.Optional;
 
 import static org.mockito.Mockito.verify;
@@ -110,9 +110,8 @@ class AuthServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(
-                IllegalArgumentException.class,
+                InvalidCredentialsException.class,
                 () -> authService.login(request)
-        );
-    }
+        );    }
 
 }

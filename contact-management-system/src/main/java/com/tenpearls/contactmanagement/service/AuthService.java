@@ -12,6 +12,7 @@ import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException
 import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
 import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
 import java.util.Optional;
+import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 
 @Service
 public class AuthService {
@@ -56,15 +57,13 @@ public class AuthService {
 
         if (userOptional.isEmpty()) {
             logger.warn("Login failed. User not found for email: {}", request.getEmail());
-            throw new IllegalArgumentException("Invalid email or password");
-        }
+            throw new InvalidCredentialsException("Invalid email or password");        }
 
         User user = userOptional.get();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             logger.warn("Login failed. Invalid password for email: {}", request.getEmail());
-            throw new IllegalArgumentException("Invalid email or password");
-        }
+            throw new InvalidCredentialsException("Invalid email or password");        }
 
         logger.info("User logged in successfully with id: {}", user.getId());
 
