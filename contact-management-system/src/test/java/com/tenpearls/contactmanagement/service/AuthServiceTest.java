@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
+import com.tenpearls.contactmanagement.security.JwtService;
 import java.util.Optional;
 
 import static org.mockito.Mockito.verify;
@@ -32,11 +33,14 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private JwtService jwtService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService);
     }
 
     @Test
@@ -90,12 +94,15 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(user));
         when(passwordEncoder.matches(request.getPassword(), user.getPassword()))
                 .thenReturn(true);
+        when(jwtService.generateToken(user.getEmail(), user.getId()))
+                .thenReturn("jwt-token");
 
         LoginResponse response = authService.login(request);
 
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals("test@example.com", response.getEmail());
+        assertEquals("jwt-token", response.getToken());
 
         verify(passwordEncoder).matches(request.getPassword(), user.getPassword());
     }
