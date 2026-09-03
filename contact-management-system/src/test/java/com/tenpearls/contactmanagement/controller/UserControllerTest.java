@@ -1,5 +1,6 @@
 package com.tenpearls.contactmanagement.controller;
 
+import com.tenpearls.contactmanagement.dto.user.ChangePasswordRequest;
 import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
 import com.tenpearls.contactmanagement.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,5 +46,16 @@ class UserControllerTest {
         assertEquals(1L, response.getId());
         assertEquals("test@example.com", response.getEmail());
         assertEquals("1234567890", response.getPhoneNumber());
+    }
+
+    @Test
+    void changePassword_shouldDelegateToUserService() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("OldPassword123");
+        request.setNewPassword("NewPassword456");
+
+        userController.changePassword(request);
+
+        verify(userService).changePassword(request);
     }
 }

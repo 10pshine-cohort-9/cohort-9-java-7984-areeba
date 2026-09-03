@@ -1,6 +1,6 @@
 package com.tenpearls.contactmanagement.config;
 
-import com.tenpearls.contactmanagement.security.CustomUserDetailsService;
+import com.tenpearls.contactmanagement.repository.UserRepository;
 import com.tenpearls.contactmanagement.security.JwtAuthenticationEntryPoint;
 import com.tenpearls.contactmanagement.security.JwtAuthenticationFilter;
 import com.tenpearls.contactmanagement.security.JwtService;
@@ -24,10 +24,10 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(
             JwtService jwtService,
-            CustomUserDetailsService userDetailsService,
+            UserRepository userRepository,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint
     ) {
-        return new JwtAuthenticationFilter(jwtService, userDetailsService, jwtAuthenticationEntryPoint);
+        return new JwtAuthenticationFilter(jwtService, userRepository, jwtAuthenticationEntryPoint);
     }
 
     @Bean
