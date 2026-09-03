@@ -92,6 +92,7 @@ class UserServiceTest {
         user.setId(1L);
         user.setEmail("test@example.com");
         user.setPassword("encoded-old-password");
+        user.setTokenVersion(0);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("OldPassword123", "encoded-old-password")).thenReturn(true);
@@ -102,6 +103,7 @@ class UserServiceTest {
         verify(passwordEncoder).encode("NewPassword456");
         verify(userRepository).save(user);
         assertEquals("encoded-new-password", user.getPassword());
+        assertEquals(1, user.getTokenVersion());
     }
 
     @Test

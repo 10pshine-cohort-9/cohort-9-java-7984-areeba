@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,18 +23,26 @@ class JwtServiceTest {
 
     @Test
     void generateToken_shouldCreateValidToken() {
-        String token = jwtService.generateToken("test@example.com", 1L);
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
 
         assertNotNull(token);
         assertEquals("test@example.com", jwtService.extractEmail(token));
         assertEquals(1L, jwtService.extractUserId(token));
-        assertTrue(jwtService.isTokenValid(token, "test@example.com"));
+        assertEquals(0, jwtService.extractTokenVersion(token));
+        assertTrue(jwtService.isTokenValid(token, "test@example.com", 0));
     }
 
     @Test
     void isTokenValid_shouldRejectMismatchedEmail() {
-        String token = jwtService.generateToken("test@example.com", 1L);
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
 
-        assertTrue(!jwtService.isTokenValid(token, "other@example.com"));
+        assertFalse(jwtService.isTokenValid(token, "other@example.com", 0));
+    }
+
+    @Test
+    void isTokenValid_shouldRejectStaleTokenVersion() {
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
+
+        assertFalse(jwtService.isTokenValid(token, "test@example.com", 1));
     }
 }

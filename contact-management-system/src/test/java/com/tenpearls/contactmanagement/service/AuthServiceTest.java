@@ -94,7 +94,7 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(user));
         when(passwordEncoder.matches(request.getPassword(), user.getPassword()))
                 .thenReturn(true);
-        when(jwtService.generateToken(user.getEmail(), user.getId()))
+        when(jwtService.generateToken(user.getEmail(), user.getId(), user.getTokenVersion()))
                 .thenReturn("jwt-token");
 
         LoginResponse response = authService.login(request);

@@ -5,7 +5,6 @@ import com.tenpearls.contactmanagement.config.PasswordConfig;
 import com.tenpearls.contactmanagement.config.SecurityConfig;
 import com.tenpearls.contactmanagement.entity.User;
 import com.tenpearls.contactmanagement.repository.UserRepository;
-import com.tenpearls.contactmanagement.security.CustomUserDetailsService;
 import com.tenpearls.contactmanagement.security.JwtAuthenticationEntryPoint;
 import com.tenpearls.contactmanagement.security.JwtService;
 import com.tenpearls.contactmanagement.service.UserService;
@@ -35,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         PasswordConfig.class,
         UserService.class,
         JwtService.class,
-        CustomUserDetailsService.class,
         JwtAuthenticationEntryPoint.class
 })
 @EnableConfigurationProperties(JwtProperties.class)
@@ -60,11 +58,12 @@ class UserControllerIntegrationTest {
         user.setEmail("test@example.com");
         user.setPassword("encoded-password");
         user.setPhoneNumber("1234567890");
+        user.setTokenVersion(0);
         user.setCreatedAt(LocalDateTime.of(2026, 1, 1, 10, 0));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("test@example.com", 1L);
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
 
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + token))
@@ -78,7 +77,7 @@ class UserControllerIntegrationTest {
     void getCurrentUser_whenUserReferencedByTokenDoesNotExist_returns401() throws Exception {
         when(userRepository.findByEmail("deleted@example.com")).thenReturn(Optional.empty());
 
-        String token = jwtService.generateToken("deleted@example.com", 2L);
+        String token = jwtService.generateToken("deleted@example.com", 2L, 0);
 
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + token))
@@ -97,11 +96,12 @@ class UserControllerIntegrationTest {
         user.setId(1L);
         user.setEmail("test@example.com");
         user.setPassword(passwordEncoder.encode("OldPassword123"));
+        user.setTokenVersion(0);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        String token = jwtService.generateToken("test@example.com", 1L);
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
 
         mockMvc.perform(put("/api/users/me/password")
                         .header("Authorization", "Bearer " + token)
@@ -121,10 +121,11 @@ class UserControllerIntegrationTest {
         user.setId(1L);
         user.setEmail("test@example.com");
         user.setPassword(passwordEncoder.encode("OldPassword123"));
+        user.setTokenVersion(0);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        String token = jwtService.generateToken("test@example.com", 1L);
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
 
         mockMvc.perform(put("/api/users/me/password")
                         .header("Authorization", "Bearer " + token)
@@ -135,6 +136,36 @@ class UserControllerIntegrationTest {
                                   "newPassword": "NewPassword456"
                                 }
                                 """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void previousToken_afterPasswordChange_returns401() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setPassword(passwordEncoder.encode("OldPassword123"));
+        user.setTokenVersion(0);
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 1, 10, 0));
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String oldToken = jwtService.generateToken("test@example.com", 1L, 0);
+
+        mockMvc.perform(put("/api/users/me/password")
+                        .header("Authorization", "Bearer " + oldToken)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "currentPassword": "OldPassword123",
+                                  "newPassword": "NewPassword456"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", "Bearer " + oldToken))
                 .andExpect(status().isUnauthorized());
     }
 }

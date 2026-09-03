@@ -23,13 +23,14 @@ public class JwtService {
         );
     }
 
-    public String generateToken(String email, Long userId) {
+    public String generateToken(String email, Long userId, int tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtProperties.getExpirationMs());
 
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey)
@@ -44,14 +45,18 @@ public class JwtService {
         return extractAllClaims(token).get("userId", Long.class);
     }
 
-    public boolean isTokenValid(String token, String email) {
-        String tokenEmail = extractEmail(token);
-        return tokenEmail != null
-                && tokenEmail.trim().equalsIgnoreCase(email.trim());
+    public Integer extractTokenVersion(String token) {
+        return extractAllClaims(token).get("tokenVersion", Integer.class);
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractAllClaims(token).getExpiration().before(new Date());
+    public boolean isTokenValid(String token, String email, int tokenVersion) {
+        String tokenEmail = extractEmail(token);
+        Integer claimVersion = extractTokenVersion(token);
+
+        return tokenEmail != null
+                && tokenEmail.trim().equalsIgnoreCase(email.trim())
+                && claimVersion != null
+                && claimVersion == tokenVersion;
     }
 
     private Claims extractAllClaims(String token) {
