@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -182,8 +184,38 @@ public class ContactService {
     }
 
     private PagedContactResponse toPagedResponse(Page<Contact> page) {
-        List<ContactResponse> content = page.getContent().stream()
-                .map(this::toResponse)
+        List<Contact> contacts = page.getContent();
+
+        if (contacts.isEmpty()) {
+            return new PagedContactResponse(
+                    Collections.emptyList(),
+                    page.getNumber(),
+                    page.getSize(),
+                    page.getTotalElements(),
+                    page.getTotalPages()
+            );
+        }
+
+        List<Long> contactIds = contacts.stream()
+                .map(Contact::getId)
+                .toList();
+
+        Map<Long, List<ContactEmail>> emailsByContactId = contactEmailRepository
+                .findByContact_IdIn(contactIds)
+                .stream()
+                .collect(Collectors.groupingBy(email -> email.getContact().getId()));
+
+        Map<Long, List<ContactPhone>> phonesByContactId = contactPhoneRepository
+                .findByContact_IdIn(contactIds)
+                .stream()
+                .collect(Collectors.groupingBy(phone -> phone.getContact().getId()));
+
+        List<ContactResponse> content = contacts.stream()
+                .map(contact -> {
+                    contact.setEmails(emailsByContactId.getOrDefault(contact.getId(), Collections.emptyList()));
+                    contact.setPhones(phonesByContactId.getOrDefault(contact.getId(), Collections.emptyList()));
+                    return toResponse(contact);
+                })
                 .toList();
 
         return new PagedContactResponse(

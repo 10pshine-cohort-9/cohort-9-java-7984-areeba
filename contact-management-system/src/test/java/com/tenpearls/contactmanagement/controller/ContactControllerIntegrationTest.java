@@ -193,6 +193,8 @@ class ContactControllerIntegrationTest {
         when(contactRepository.findByUserId(eq(1L), any())).thenReturn(
                 new PageImpl<>(List.of(contact), PageRequest.of(0, 10), 1)
         );
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 
@@ -212,6 +214,8 @@ class ContactControllerIntegrationTest {
         when(contactRepository.searchByUserId(eq(1L), eq("John"), eq(null), any())).thenReturn(
                 new PageImpl<>(List.of(contact), PageRequest.of(0, 10), 1)
         );
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 

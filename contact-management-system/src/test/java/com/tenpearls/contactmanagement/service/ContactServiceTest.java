@@ -190,6 +190,8 @@ class ContactServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByUserId(1L, pageable)).thenReturn(page);
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getPhones());
 
         PagedContactResponse response = contactService.listContacts(pageable);
 
@@ -205,6 +207,8 @@ class ContactServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.searchByUserId(eq(1L), eq("John"), eq("Doe"), eq(pageable))).thenReturn(page);
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getPhones());
 
         PagedContactResponse response = contactService.searchContacts("John", "Doe", pageable);
 
