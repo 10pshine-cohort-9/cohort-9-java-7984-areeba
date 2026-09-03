@@ -138,8 +138,8 @@ public class ContactService {
         Contact contact = contactRepository.findByIdAndUserId(contactId, userId)
                 .orElseThrow(() -> new ContactNotFoundException("Contact not found"));
 
-        contact.getEmails().size();
-        contact.getPhones().size();
+        contact.setEmails(contactEmailRepository.findByContactId(contactId));
+        contact.setPhones(contactPhoneRepository.findByContactId(contactId));
 
         return contact;
     }

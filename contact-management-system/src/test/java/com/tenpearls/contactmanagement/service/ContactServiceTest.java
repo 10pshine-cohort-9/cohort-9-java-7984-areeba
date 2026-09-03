@@ -97,6 +97,9 @@ class ContactServiceTest {
             Contact contact = buildContactWithDetails(10L);
             return Optional.of(contact);
         });
+        Contact contactWithDetails = buildContactWithDetails(10L);
+        when(contactEmailRepository.findByContactId(10L)).thenReturn(contactWithDetails.getEmails());
+        when(contactPhoneRepository.findByContactId(10L)).thenReturn(contactWithDetails.getPhones());
 
         var response = contactService.createContact(request);
 
@@ -117,6 +120,8 @@ class ContactServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(contact));
+        when(contactEmailRepository.findByContactId(5L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(5L)).thenReturn(contact.getPhones());
 
         var response = contactService.getContact(5L);
 
@@ -150,6 +155,8 @@ class ContactServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(existingContact));
         when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(contactEmailRepository.findByContactId(7L)).thenReturn(existingContact.getEmails());
+        when(contactPhoneRepository.findByContactId(7L)).thenReturn(existingContact.getPhones());
 
         var response = contactService.updateContact(7L, request);
 
@@ -165,6 +172,8 @@ class ContactServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(contact));
+        when(contactEmailRepository.findByContactId(3L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(3L)).thenReturn(contact.getPhones());
 
         contactService.deleteContact(3L);
 

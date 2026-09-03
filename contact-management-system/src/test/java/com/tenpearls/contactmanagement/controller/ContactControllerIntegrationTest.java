@@ -73,13 +73,16 @@ class ContactControllerIntegrationTest {
     @Test
     void createContact_withValidBearerToken_returns201() throws Exception {
         User user = buildUser();
+        Contact contact = buildContact(1L, user);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> {
-            Contact contact = invocation.getArgument(0);
-            contact.setId(1L);
-            return contact;
+            Contact savedContact = invocation.getArgument(0);
+            savedContact.setId(1L);
+            return savedContact;
         });
-        when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(buildContact(1L, user)));
+        when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(contact));
+        when(contactEmailRepository.findByContactId(1L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(1L)).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 
@@ -108,8 +111,11 @@ class ContactControllerIntegrationTest {
     @Test
     void getContact_withValidBearerToken_returns200() throws Exception {
         User user = buildUser();
+        Contact contact = buildContact(1L, user);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
-        when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(buildContact(1L, user)));
+        when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(contact));
+        when(contactEmailRepository.findByContactId(1L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(1L)).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 
@@ -140,6 +146,8 @@ class ContactControllerIntegrationTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(contact));
         when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(contactEmailRepository.findByContactId(1L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(1L)).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 
@@ -166,6 +174,8 @@ class ContactControllerIntegrationTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(contact));
+        when(contactEmailRepository.findByContactId(1L)).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContactId(1L)).thenReturn(contact.getPhones());
 
         String token = jwtService.generateToken("test@example.com", 1L, 0);
 
