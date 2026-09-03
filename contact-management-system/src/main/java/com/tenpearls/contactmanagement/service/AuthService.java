@@ -13,17 +13,24 @@ import com.tenpearls.contactmanagement.dto.auth.LoginRequest;
 import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
 import java.util.Optional;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
+import com.tenpearls.contactmanagement.security.JwtService;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public RegisterResponse register(RegisterRequest request) {
@@ -67,6 +74,8 @@ public class AuthService {
 
         logger.info("User logged in successfully with id: {}", user.getId());
 
-        return new LoginResponse(user.getId(), user.getEmail());
+        String token = jwtService.generateToken(user.getEmail(), user.getId());
+
+        return new LoginResponse(user.getId(), user.getEmail(), token);
     }
 }

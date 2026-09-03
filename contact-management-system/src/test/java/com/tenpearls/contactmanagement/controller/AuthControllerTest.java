@@ -80,7 +80,7 @@ class AuthControllerTest {
         request.setEmail("test@example.com");
         request.setPassword("Password123");
 
-        LoginResponse expectedResponse = new LoginResponse(1L, "test@example.com");
+        LoginResponse expectedResponse = new LoginResponse(1L, "test@example.com", "jwt-token");
 
         when(authService.login(request)).thenReturn(expectedResponse);
 
@@ -89,5 +89,6 @@ class AuthControllerTest {
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals("test@example.com", response.getEmail());
+        assertEquals("jwt-token", response.getToken());
     }
 }
