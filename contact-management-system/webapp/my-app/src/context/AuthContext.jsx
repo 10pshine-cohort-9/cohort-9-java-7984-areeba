@@ -1,10 +1,14 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api, clearAuth, setToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setTokenState] = useState(() => localStorage.getItem("token"));
+  const [token, setTokenState] = useState(null);
+
+  useEffect(() => {
+    localStorage.removeItem("token");
+  }, []);
 
   const value = useMemo(
     () => ({

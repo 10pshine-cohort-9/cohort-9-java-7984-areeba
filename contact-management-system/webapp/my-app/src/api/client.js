@@ -1,18 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-function getToken() {
-  return localStorage.getItem("token");
+let authToken = null;
+
+export function getToken() {
+  return authToken;
 }
 
 export function setToken(token) {
-  if (token) {
-    localStorage.setItem("token", token);
-  } else {
-    localStorage.removeItem("token");
-  }
+  authToken = token || null;
 }
 
 export function clearAuth() {
+  authToken = null;
   localStorage.removeItem("token");
 }
 
