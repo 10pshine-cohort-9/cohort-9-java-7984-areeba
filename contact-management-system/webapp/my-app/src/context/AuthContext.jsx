@@ -3,6 +3,13 @@ import { api, clearAuth, setToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
+export class RegistrationLoginError extends Error {
+  constructor(message = "Account created successfully. Please sign in with your credentials.") {
+    super(message);
+    this.name = "RegistrationLoginError";
+  }
+}
+
 export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(null);
 
@@ -20,11 +27,20 @@ export function AuthProvider({ children }) {
         return response;
       },
       register: async (email, password) => {
-        const response = await api.register({ email, password });
-        const loginResponse = await api.login({ email, password });
-        setToken(loginResponse.token);
-        setTokenState(loginResponse.token);
-        return response;
+        await api.register({ email, password });
+
+        try {
+          const loginResponse = await api.login({ email, password });
+          setToken(loginResponse.token);
+          setTokenState(loginResponse.token);
+          return loginResponse;
+        } catch (loginError) {
+          throw new RegistrationLoginError(
+            loginError.message
+              ? `Account created, but automatic sign-in failed: ${loginError.message} Please sign in.`
+              : undefined
+          );
+        }
       },
       logout: () => {
         clearAuth();

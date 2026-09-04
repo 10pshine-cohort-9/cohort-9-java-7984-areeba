@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, RegistrationLoginError } from "../context/AuthContext";
 import { Icons } from "../components/common/Icons";
 
 export default function AuthEntryPage() {
@@ -12,6 +12,7 @@ export default function AuthEntryPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -22,12 +23,14 @@ export default function AuthEntryPage() {
 
   const openView = (nextView) => {
     setError("");
+    setSuccessMessage("");
     setView(nextView);
     navigate(nextView === "register" ? "/register" : "/login", { replace: true });
   };
 
   const backToLanding = () => {
     setError("");
+    setSuccessMessage("");
     setEmail("");
     setPassword("");
     setView("landing");
@@ -37,6 +40,7 @@ export default function AuthEntryPage() {
   const handleLogin = async (event) => {
     event.preventDefault();
     setError("");
+    setSuccessMessage("");
     setLoading(true);
 
     try {
@@ -58,6 +62,14 @@ export default function AuthEntryPage() {
       await register(email, password);
       navigate("/dashboard");
     } catch (err) {
+      if (err instanceof RegistrationLoginError) {
+        setPassword("");
+        setError("");
+        setView("login");
+        navigate("/login", { replace: true });
+        setSuccessMessage(err.message);
+        return;
+      }
       setError(err.message || "Registration failed");
     } finally {
       setLoading(false);
@@ -124,6 +136,7 @@ export default function AuthEntryPage() {
                   />
                 </div>
               </label>
+              {successMessage && <p className="success">{successMessage}</p>}
               {error && <p className="error">{error}</p>}
               <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
                 {loading ? "Signing in..." : "Sign in"}
