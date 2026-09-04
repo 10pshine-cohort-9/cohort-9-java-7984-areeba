@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentCaptor.forClass;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class ContactCsvServiceTest {
@@ -156,5 +158,160 @@ class ContactCsvServiceTest {
         String csv = contactCsvService.exportContactsCsv();
 
         assertEquals("firstName,lastName,title,email,emailType,phone,phoneType\n", csv);
+    }
+
+    @Test
+    void exportContactsCsv_shouldIncludeAllEmailsAndPhonesInStableOrder() {
+        Contact contact = new Contact();
+        contact.setId(1L);
+        contact.setFirstName("John");
+        contact.setLastName("Doe");
+        contact.setTitle("Engineer");
+        contact.setUser(user);
+
+        ContactEmail workEmail = new ContactEmail();
+        workEmail.setId(2L);
+        workEmail.setEmail("john@work.com");
+        workEmail.setType(EmailType.WORK);
+        workEmail.setContact(contact);
+
+        ContactEmail personalEmail = new ContactEmail();
+        personalEmail.setId(1L);
+        personalEmail.setEmail("john@home.com");
+        personalEmail.setType(EmailType.PERSONAL);
+        personalEmail.setContact(contact);
+
+        ContactPhone homePhone = new ContactPhone();
+        homePhone.setId(1L);
+        homePhone.setPhoneNumber("1111111111");
+        homePhone.setType(PhoneType.HOME);
+        homePhone.setContact(contact);
+
+        ContactPhone workPhone = new ContactPhone();
+        workPhone.setId(2L);
+        workPhone.setPhoneNumber("2222222222");
+        workPhone.setType(PhoneType.WORK);
+        workPhone.setContact(contact);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L)).thenReturn(List.of(contact));
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L)))
+                .thenReturn(List.of(workEmail, personalEmail));
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L)))
+                .thenReturn(List.of(workPhone, homePhone));
+
+        String csv = contactCsvService.exportContactsCsv();
+
+        assertTrue(csv.contains(
+                "John,Doe,Engineer,john@home.com|john@work.com,PERSONAL|WORK,1111111111|2222222222,HOME|WORK"
+        ));
+    }
+
+    @Test
+    void importContactsCsv_withMultipleEmailsAndPhones_shouldPreserveAllValues() throws Exception {
+        String csv = """
+                firstName,lastName,title,email,emailType,phone,phoneType
+                Jane,Smith,Manager,jane@work.com|jane@home.com,WORK|PERSONAL,1111111111|2222222222,WORK|HOME
+                """;
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(contactService.createContact(any(CreateContactRequest.class)))
+                .thenReturn(new ContactResponse(1L, "Jane", "Smith", "Manager", List.of(), List.of()));
+
+        ArgumentCaptor<CreateContactRequest> requestCaptor = forClass(CreateContactRequest.class);
+
+        var response = contactCsvService.importContactsCsv(file);
+
+        assertEquals(1, response.getImportedCount());
+        assertEquals(0, response.getFailedCount());
+        verify(contactService).createContact(requestCaptor.capture());
+
+        CreateContactRequest request = requestCaptor.getValue();
+        assertEquals(2, request.getEmails().size());
+        assertEquals("jane@work.com", request.getEmails().get(0).getEmail());
+        assertEquals(EmailType.WORK, request.getEmails().get(0).getType());
+        assertEquals("jane@home.com", request.getEmails().get(1).getEmail());
+        assertEquals(EmailType.PERSONAL, request.getEmails().get(1).getType());
+        assertEquals(2, request.getPhones().size());
+        assertEquals("1111111111", request.getPhones().get(0).getPhoneNumber());
+        assertEquals(PhoneType.WORK, request.getPhones().get(0).getType());
+        assertEquals("2222222222", request.getPhones().get(1).getPhoneNumber());
+        assertEquals(PhoneType.HOME, request.getPhones().get(1).getType());
+    }
+
+    @Test
+    void exportAndImport_shouldRoundTripMultipleEmailsAndPhones() {
+        Contact contact = new Contact();
+        contact.setId(1L);
+        contact.setFirstName("Alex");
+        contact.setLastName("Lee");
+        contact.setTitle("Lead");
+        contact.setUser(user);
+
+        ContactEmail firstEmail = new ContactEmail();
+        firstEmail.setId(10L);
+        firstEmail.setEmail("alex@work.com");
+        firstEmail.setType(EmailType.WORK);
+        firstEmail.setContact(contact);
+
+        ContactEmail secondEmail = new ContactEmail();
+        secondEmail.setId(11L);
+        secondEmail.setEmail("alex@home.com");
+        secondEmail.setType(EmailType.PERSONAL);
+        secondEmail.setContact(contact);
+
+        ContactPhone firstPhone = new ContactPhone();
+        firstPhone.setId(20L);
+        firstPhone.setPhoneNumber("3333333333");
+        firstPhone.setType(PhoneType.WORK);
+        firstPhone.setContact(contact);
+
+        ContactPhone secondPhone = new ContactPhone();
+        secondPhone.setId(21L);
+        secondPhone.setPhoneNumber("4444444444");
+        secondPhone.setType(PhoneType.HOME);
+        secondPhone.setContact(contact);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L)).thenReturn(List.of(contact));
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L)))
+                .thenReturn(List.of(firstEmail, secondEmail));
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L)))
+                .thenReturn(List.of(firstPhone, secondPhone));
+        when(contactService.createContact(any(CreateContactRequest.class)))
+                .thenReturn(new ContactResponse(2L, "Alex", "Lee", "Lead", List.of(), List.of()));
+
+        String exportedCsv = contactCsvService.exportContactsCsv();
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                exportedCsv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        ArgumentCaptor<CreateContactRequest> requestCaptor = forClass(CreateContactRequest.class);
+
+        contactCsvService.importContactsCsv(file);
+
+        verify(contactService).createContact(requestCaptor.capture());
+        CreateContactRequest importedRequest = requestCaptor.getValue();
+
+        assertEquals(2, importedRequest.getEmails().size());
+        assertEquals("alex@work.com", importedRequest.getEmails().get(0).getEmail());
+        assertEquals(EmailType.WORK, importedRequest.getEmails().get(0).getType());
+        assertEquals("alex@home.com", importedRequest.getEmails().get(1).getEmail());
+        assertEquals(EmailType.PERSONAL, importedRequest.getEmails().get(1).getType());
+        assertEquals(2, importedRequest.getPhones().size());
+        assertEquals("3333333333", importedRequest.getPhones().get(0).getPhoneNumber());
+        assertEquals(PhoneType.WORK, importedRequest.getPhones().get(0).getType());
+        assertEquals("4444444444", importedRequest.getPhones().get(1).getPhoneNumber());
+        assertEquals(PhoneType.HOME, importedRequest.getPhones().get(1).getType());
     }
 }
