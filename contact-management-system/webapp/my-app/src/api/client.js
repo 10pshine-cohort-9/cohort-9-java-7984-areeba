@@ -1,4 +1,34 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
+function resolveApiBaseUrl(rawUrl) {
+  const url = (rawUrl ?? "").trim();
+  if (!url) {
+    return "";
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("VITE_API_URL must be a valid absolute URL or left empty for relative requests.");
+  }
+
+  if (parsed.protocol === "https:") {
+    return url.replace(/\/$/, "");
+  }
+
+  const isLocalhost =
+    parsed.protocol === "http:" &&
+    (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
+
+  if (isLocalhost && import.meta.env.DEV) {
+    return url.replace(/\/$/, "");
+  }
+
+  throw new Error(
+    "VITE_API_URL must be empty, use https://, or http://localhost during local development only."
+  );
+}
+
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
 let authToken = null;
 
