@@ -314,4 +314,91 @@ class ContactCsvServiceTest {
         assertEquals("4444444444", importedRequest.getPhones().get(1).getPhoneNumber());
         assertEquals(PhoneType.HOME, importedRequest.getPhones().get(1).getType());
     }
+
+    @Test
+    void importContactsCsv_withQuotedMultilineField_shouldParseCompleteRecord() throws Exception {
+        String csv = """
+                firstName,lastName,title,email,emailType,phone,phoneType
+                Mary,O'Connor,"VP
+                Sales",mary@example.com,WORK,1234567890,HOME
+                """;
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(contactService.createContact(any(CreateContactRequest.class)))
+                .thenReturn(new ContactResponse(1L, "Mary", "O'Connor", "VP\nSales", List.of(), List.of()));
+
+        ArgumentCaptor<CreateContactRequest> requestCaptor = forClass(CreateContactRequest.class);
+
+        var response = contactCsvService.importContactsCsv(file);
+
+        assertEquals(1, response.getImportedCount());
+        assertEquals(0, response.getFailedCount());
+        verify(contactService).createContact(requestCaptor.capture());
+        assertEquals("VP\nSales", requestCaptor.getValue().getTitle());
+    }
+
+    @Test
+    void exportAndImport_shouldRoundTripCommasQuotesAndLineBreaks() {
+        Contact contact = new Contact();
+        contact.setId(1L);
+        contact.setFirstName("Mary");
+        contact.setLastName("O'Connor");
+        contact.setTitle("VP\nSales");
+        contact.setUser(user);
+
+        ContactEmail email = new ContactEmail();
+        email.setId(1L);
+        email.setEmail("mary,o'connor@example.com");
+        email.setType(EmailType.WORK);
+        email.setContact(contact);
+
+        ContactPhone phone = new ContactPhone();
+        phone.setId(1L);
+        phone.setPhoneNumber("\"555\"");
+        phone.setType(PhoneType.HOME);
+        phone.setContact(contact);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L)).thenReturn(List.of(contact));
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(List.of(email));
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(List.of(phone));
+        when(contactService.createContact(any(CreateContactRequest.class)))
+                .thenReturn(new ContactResponse(2L, "Mary", "O'Connor", "VP\nSales", List.of(), List.of()));
+
+        String exportedCsv = contactCsvService.exportContactsCsv();
+
+        assertTrue(exportedCsv.contains("\"VP\nSales\""));
+        assertTrue(exportedCsv.contains("\"mary,o'connor@example.com\""));
+        assertTrue(exportedCsv.contains("\"\"\"555\"\"\""));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                exportedCsv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        ArgumentCaptor<CreateContactRequest> requestCaptor = forClass(CreateContactRequest.class);
+
+        var response = contactCsvService.importContactsCsv(file);
+
+        assertEquals(1, response.getImportedCount());
+        assertEquals(0, response.getFailedCount());
+        verify(contactService).createContact(requestCaptor.capture());
+
+        CreateContactRequest importedRequest = requestCaptor.getValue();
+        assertEquals("Mary", importedRequest.getFirstName());
+        assertEquals("O'Connor", importedRequest.getLastName());
+        assertEquals("VP\nSales", importedRequest.getTitle());
+        assertEquals("mary,o'connor@example.com", importedRequest.getEmails().get(0).getEmail());
+        assertEquals(EmailType.WORK, importedRequest.getEmails().get(0).getType());
+        assertEquals("\"555\"", importedRequest.getPhones().get(0).getPhoneNumber());
+        assertEquals(PhoneType.HOME, importedRequest.getPhones().get(0).getType());
+    }
 }

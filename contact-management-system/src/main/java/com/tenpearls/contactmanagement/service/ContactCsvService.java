@@ -25,9 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PushbackReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -126,10 +127,10 @@ public class ContactCsvService {
         ContactImportResponse response = new ContactImportResponse();
         response.setErrors(new ArrayList<>());
 
-        try (BufferedReader reader = new BufferedReader(
+        try (PushbackReader reader = new PushbackReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
-            String headerLine = reader.readLine();
+            String headerLine = readCsvRecord(reader);
             if (headerLine == null) {
                 throw new InvalidCsvFileException("CSV file is empty");
             }
@@ -139,7 +140,7 @@ public class ContactCsvService {
             String line;
             int rowNumber = 1;
 
-            while ((line = reader.readLine()) != null) {
+            while ((line = readCsvRecord(reader)) != null) {
                 rowNumber++;
                 if (line.isBlank()) {
                     continue;
@@ -301,6 +302,60 @@ public class ContactCsvService {
         return PhoneType.valueOf(value.trim().toUpperCase(Locale.ROOT));
     }
 
+    private String readCsvRecord(Reader reader) throws IOException {
+        PushbackReader pushbackReader = reader instanceof PushbackReader existingReader
+                ? existingReader
+                : new PushbackReader(reader);
+
+        StringBuilder record = new StringBuilder();
+        boolean inQuotes = false;
+        boolean started = false;
+
+        int read;
+        while ((read = pushbackReader.read()) != -1) {
+            char character = (char) read;
+            started = true;
+
+            if (character == '"') {
+                if (inQuotes) {
+                    int next = pushbackReader.read();
+                    if (next == '"') {
+                        record.append('"');
+                        record.append('"');
+                    } else {
+                        if (next != -1) {
+                            pushbackReader.unread(next);
+                        }
+                        inQuotes = false;
+                        record.append('"');
+                    }
+                } else {
+                    inQuotes = true;
+                    record.append('"');
+                }
+                continue;
+            }
+
+            if (!inQuotes && (character == '\n' || character == '\r')) {
+                if (character == '\r') {
+                    int next = pushbackReader.read();
+                    if (next != '\n' && next != -1) {
+                        pushbackReader.unread(next);
+                    }
+                }
+                return record.toString();
+            }
+
+            record.append(character);
+        }
+
+        if (!started) {
+            return null;
+        }
+
+        return record.toString();
+    }
+
     private List<String> parseCsvLine(String line) {
         List<String> values = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -337,7 +392,7 @@ public class ContactCsvService {
             return "";
         }
 
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
 
