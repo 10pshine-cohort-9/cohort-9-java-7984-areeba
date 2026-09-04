@@ -396,8 +396,24 @@ public class ContactCsvService {
             return "";
         }
 
-        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
+        String sanitized = neutralizeFormulaInjection(value);
+
+        if (sanitized.contains(",") || sanitized.contains("\"") || sanitized.contains("\n") || sanitized.contains("\r")) {
+            return "\"" + sanitized.replace("\"", "\"\"") + "\"";
+        }
+
+        return sanitized;
+    }
+
+    private String neutralizeFormulaInjection(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+
+        char firstCharacter = value.charAt(0);
+        if (firstCharacter == '=' || firstCharacter == '+' || firstCharacter == '-'
+                || firstCharacter == '@') {
+            return "'" + value;
         }
 
         return value;

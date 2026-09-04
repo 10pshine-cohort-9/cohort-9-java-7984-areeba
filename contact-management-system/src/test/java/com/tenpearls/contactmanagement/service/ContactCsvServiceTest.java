@@ -230,6 +230,34 @@ class ContactCsvServiceTest {
     }
 
     @Test
+    void exportContactsCsv_shouldNeutralizeFormulaInjection() {
+        Contact contact = new Contact();
+        contact.setId(1L);
+        contact.setFirstName("=1+1");
+        contact.setLastName("+cmd|'/c calc'!A0");
+        contact.setTitle("@SUM(A1:A2)");
+        contact.setUser(user);
+
+        ContactEmail email = new ContactEmail();
+        email.setId(1L);
+        email.setEmail("-alert@example.com");
+        email.setType(EmailType.WORK);
+        email.setContact(contact);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L)).thenReturn(List.of(contact));
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(List.of(email));
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(List.of());
+
+        String csv = contactCsvService.exportContactsCsv();
+
+        assertTrue(csv.contains("'=1+1"));
+        assertTrue(csv.contains("'+cmd|'/c calc'!A0"));
+        assertTrue(csv.contains("'@SUM(A1:A2)"));
+        assertTrue(csv.contains("'-alert@example.com"));
+    }
+
+    @Test
     void importContactsCsv_withMultipleEmailsAndPhones_shouldPreserveAllValues() throws Exception {
         String csv = """
                 firstName,lastName,title,email,emailType,phone,phoneType

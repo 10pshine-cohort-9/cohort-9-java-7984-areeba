@@ -450,6 +450,7 @@ Field: file (must be .csv)
 - Emails and phones sorted by record `id` for stable order
 - Multiple values joined with `|` in their respective columns
 - Fields containing commas, quotes, or newlines are RFC-quoted
+- Values starting with `=`, `+`, `-`, or `@` are prefixed with `'` to prevent CSV formula injection in spreadsheets
 
 ### Import behavior
 
