@@ -61,8 +61,8 @@ export const api = {
     request("/api/users/me/password", { method: "PUT", body: JSON.stringify(body) }),
   listContacts: (page = 0, size = 10, sort = "lastName,asc") =>
     request(`/api/contacts?page=${page}&size=${size}&sort=${sort}`),
-  searchContacts: (firstName, lastName, page = 0, size = 10) => {
-    const params = new URLSearchParams({ page, size });
+  searchContacts: (firstName, lastName, page = 0, size = 10, sort = "lastName,asc") => {
+    const params = new URLSearchParams({ page, size, sort });
     if (firstName) params.set("firstName", firstName);
     if (lastName) params.set("lastName", lastName);
     return request(`/api/contacts/search?${params}`);

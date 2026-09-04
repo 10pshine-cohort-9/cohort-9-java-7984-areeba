@@ -40,7 +40,7 @@ export default function ContactsPage() {
     try {
       const hasSearch = firstName.trim() || lastName.trim();
       const response = hasSearch
-        ? await api.searchContacts(firstName.trim(), lastName.trim(), pageNumber)
+        ? await api.searchContacts(firstName.trim(), lastName.trim(), pageNumber, 10, sort)
         : await api.listContacts(pageNumber, 10, sort);
 
       setContacts(response.content);
