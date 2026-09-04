@@ -51,6 +51,30 @@ export function clearAuth() {
   onAuthCleared?.();
 }
 
+function parseResponseBody(text) {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getErrorMessage(data, fallback) {
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (data && typeof data.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  return fallback;
+}
+
 async function request(path, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -77,11 +101,10 @@ async function request(path, options = {}) {
   }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  const data = parseResponseBody(text);
 
   if (!response.ok) {
-    const message = typeof data === "string" ? data : data?.message || "Request failed";
-    throw new Error(message);
+    throw new Error(getErrorMessage(data, "Request failed"));
   }
 
   return data;
@@ -162,11 +185,10 @@ export const api = {
     }
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    const data = parseResponseBody(text);
 
     if (!response.ok) {
-      const message = typeof data === "string" ? data : data?.message || "Failed to import contacts";
-      throw new Error(message);
+      throw new Error(getErrorMessage(data, "Failed to import contacts"));
     }
 
     return data;
