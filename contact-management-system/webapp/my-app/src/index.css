@@ -795,8 +795,13 @@ input::placeholder {
   line-height: 1.1;
   margin: 0;
   text-align: center;
-  white-space: nowrap;
   max-width: 100%;
+}
+
+@media (min-width: 376px) {
+  .auth-hero h1 {
+    white-space: nowrap;
+  }
 }
 
 .auth-hero-description {
