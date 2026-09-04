@@ -17,7 +17,7 @@ Full-stack contact directory built for **Cohort 9 — Java + React**. Users can 
 - **Java 17+**
 - **Maven** (or use included `./mvnw`)
 - **PostgreSQL** running locally
-- **Node.js 18+** and **npm** (for frontend)
+- **Node.js 20.19+** or **22.12+** and **npm** (for frontend — required by Vite 8)
 
 ## Environment variables
 
