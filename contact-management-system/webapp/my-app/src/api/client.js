@@ -119,4 +119,56 @@ export const api = {
   updateContact: (id, body) =>
     request(`/api/contacts/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteContact: (id) => request(`/api/contacts/${id}`, { method: "DELETE" }),
+  exportContacts: async () => {
+    const token = getToken();
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/contacts/export`, { headers });
+
+    if (response.status === 401 && token) {
+      clearAuth();
+      throw new Error("Session expired. Please login again.");
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Failed to export contacts");
+    }
+
+    return response.blob();
+  },
+  importContacts: async (file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/contacts/import`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (response.status === 401 && token) {
+      clearAuth();
+      throw new Error("Session expired. Please login again.");
+    }
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (!response.ok) {
+      const message = typeof data === "string" ? data : data?.message || "Failed to import contacts";
+      throw new Error(message);
+    }
+
+    return data;
+  },
 };
