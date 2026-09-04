@@ -61,6 +61,17 @@ export const api = {
     request("/api/users/me/password", { method: "PUT", body: JSON.stringify(body) }),
   listContacts: (page = 0, size = 10, sort = "lastName,asc") =>
     request(`/api/contacts?page=${page}&size=${size}&sort=${sort}`),
+  listAllContacts: async (sort = "lastName,asc", pageSize = 100) => {
+    const firstPage = await request(`/api/contacts?page=0&size=${pageSize}&sort=${sort}`);
+    const contacts = [...firstPage.content];
+
+    for (let page = 1; page < firstPage.totalPages; page++) {
+      const nextPage = await request(`/api/contacts?page=${page}&size=${pageSize}&sort=${sort}`);
+      contacts.push(...nextPage.content);
+    }
+
+    return { contacts, totalElements: firstPage.totalElements };
+  },
   searchContacts: (firstName, lastName, page = 0, size = 10, sort = "lastName,asc") => {
     const params = new URLSearchParams({ page, size, sort });
     if (firstName) params.set("firstName", firstName);

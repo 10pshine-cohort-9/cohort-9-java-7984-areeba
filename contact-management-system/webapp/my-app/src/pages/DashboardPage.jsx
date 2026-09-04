@@ -27,14 +27,14 @@ export default function DashboardPage() {
       setError("");
 
       try {
-        const [userResponse, contactsResponse] = await Promise.all([
+        const [userResponse, contactsResult] = await Promise.all([
           api.getCurrentUser(),
-          api.listContacts(0, 100, "lastName,asc"),
+          api.listAllContacts("lastName,asc"),
         ]);
 
         setUser(userResponse);
-        setContacts(contactsResponse.content);
-        setTotalContacts(contactsResponse.totalElements);
+        setContacts(contactsResult.contacts);
+        setTotalContacts(contactsResult.totalElements);
       } catch (err) {
         setError(err.message || "Failed to load dashboard");
       } finally {
