@@ -216,27 +216,54 @@ Base URL: `http://localhost:8080`
 
 #### POST `/api/auth/register`
 
+**Request body:**
+
 ```json
-// Request
-{ "email": "user@example.com", "password": "Password123" }
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
 
-// Response 201
-{ "id": 1, "email": "user@example.com" }
+**Response `201 Created`:**
 
-// Error 409
+```json
+{
+  "id": 1,
+  "email": "user@example.com"
+}
+```
+
+**Error `409 Conflict`:**
+
+```json
 "Email is already registered"
 ```
 
 #### POST `/api/auth/login`
 
+**Request body:**
+
 ```json
-// Request
-{ "email": "user@example.com", "password": "Password123" }
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
 
-// Response 200
-{ "id": 1, "email": "user@example.com", "token": "eyJhbG..." }
+**Response `200 OK`:**
 
-// Error 401
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "token": "eyJhbG..."
+}
+```
+
+**Error `401 Unauthorized`:**
+
+```json
 "Invalid email or password"
 ```
 
@@ -248,8 +275,9 @@ All require `Authorization: Bearer <token>`.
 
 #### GET `/api/users/me`
 
+**Response `200 OK`:**
+
 ```json
-// Response 200
 {
   "id": 1,
   "email": "user@example.com",
@@ -260,22 +288,46 @@ All require `Authorization: Bearer <token>`.
 
 #### PUT `/api/users/me`
 
-```json
-// Request
-{ "email": "newemail@example.com", "phoneNumber": "9876543210" }
+**Request body:**
 
-// Response 200 — updated profile
-// Error 409 — "Email is already registered" or "Phone number is already registered"
+```json
+{
+  "email": "newemail@example.com",
+  "phoneNumber": "9876543210"
+}
+```
+
+**Response `200 OK`:** updated profile (same shape as `GET /api/users/me`).
+
+**Error `409 Conflict`:**
+
+```json
+"Email is already registered"
+```
+
+or
+
+```json
+"Phone number is already registered"
 ```
 
 #### PUT `/api/users/me/password`
 
-```json
-// Request
-{ "currentPassword": "OldPassword123", "newPassword": "NewPassword456" }
+**Request body:**
 
-// Response 204 No Content
-// Error 401 — "Invalid current password"
+```json
+{
+  "currentPassword": "OldPassword123",
+  "newPassword": "NewPassword456"
+}
+```
+
+**Response `204 No Content`:** empty body.
+
+**Error `401 Unauthorized`:**
+
+```json
+"Invalid current password"
 ```
 
 ---
@@ -286,8 +338,9 @@ All require `Authorization: Bearer <token>`. Contacts are scoped to the authenti
 
 #### POST `/api/contacts`
 
+**Request body:**
+
 ```json
-// Request
 {
   "firstName": "John",
   "lastName": "Doe",
@@ -300,30 +353,40 @@ All require `Authorization: Bearer <token>`. Contacts are scoped to the authenti
     { "phoneNumber": "1234567890", "type": "HOME" }
   ]
 }
+```
 
-// Response 201
+**Response `201 Created`:**
+
+```json
 {
   "id": 1,
   "firstName": "John",
   "lastName": "Doe",
   "title": "Engineer",
-  "emails": [ { "id": 1, "email": "john@work.com", "type": "WORK" } ],
-  "phones": [ { "id": 1, "phoneNumber": "1234567890", "type": "HOME" } ]
+  "emails": [
+    { "id": 1, "email": "john@work.com", "type": "WORK" }
+  ],
+  "phones": [
+    { "id": 1, "phoneNumber": "1234567890", "type": "HOME" }
+  ]
 }
 ```
 
 #### GET `/api/contacts?page=0&size=10&sort=lastName,asc`
 
+**Response `200 OK`:**
+
 ```json
-// Response 200
 {
-  "content": [ /* ContactResponse[] */ ],
+  "content": [],
   "page": 0,
   "size": 10,
   "totalElements": 42,
   "totalPages": 5
 }
 ```
+
+`content` is an array of contact objects (same shape as the create response).
 
 **Sort examples:** `lastName,asc` · `lastName,desc` · `id,desc` (newest first)
 
@@ -346,8 +409,9 @@ Content-Type: multipart/form-data
 Field: file (must be .csv)
 ```
 
+**Response `200 OK`:**
+
 ```json
-// Response 200
 {
   "importedCount": 8,
   "failedCount": 2,
