@@ -30,7 +30,7 @@ function resolveApiBaseUrl(rawUrl) {
 
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
-let authToken = null;
+let authToken = localStorage.getItem("token") || null;
 let onAuthCleared = null;
 
 export function setAuthClearHandler(handler) {
@@ -43,6 +43,12 @@ export function getToken() {
 
 export function setToken(token) {
   authToken = token || null;
+
+  if (authToken) {
+    localStorage.setItem("token", authToken);
+  } else {
+    localStorage.removeItem("token");
+  }
 }
 
 export function clearAuth() {
