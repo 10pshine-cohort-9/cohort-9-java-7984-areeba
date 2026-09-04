@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.controller;
 
 import com.tenpearls.contactmanagement.dto.user.ChangePasswordRequest;
 import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
+import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,5 +58,26 @@ class UserControllerTest {
         userController.changePassword(request);
 
         verify(userService).changePassword(request);
+    }
+
+    @Test
+    void updateProfile_shouldDelegateToUserService() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setEmail("test@example.com");
+        request.setPhoneNumber("1234567890");
+
+        CurrentUserResponse expectedResponse = new CurrentUserResponse(
+                1L,
+                "test@example.com",
+                "1234567890",
+                LocalDateTime.of(2026, 1, 1, 10, 0)
+        );
+
+        when(userService.updateProfile(request)).thenReturn(expectedResponse);
+
+        CurrentUserResponse response = userController.updateProfile(request);
+
+        assertEquals("1234567890", response.getPhoneNumber());
+        verify(userService).updateProfile(request);
     }
 }
