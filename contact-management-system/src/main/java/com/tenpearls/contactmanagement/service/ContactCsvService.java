@@ -353,6 +353,10 @@ public class ContactCsvService {
             return null;
         }
 
+        if (inQuotes) {
+            throw new InvalidCsvFileException("CSV file contains an unterminated quoted field");
+        }
+
         return record.toString();
     }
 

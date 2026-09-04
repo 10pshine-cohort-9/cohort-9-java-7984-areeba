@@ -455,6 +455,7 @@ Field: file (must be .csv)
 
 - Validates exact header: `firstName,lastName,title,email,emailType,phone,phoneType`
 - Parses complete CSV records (supports quoted multiline fields)
+- Rejects unterminated quoted fields at end of file
 - Splits pipe-separated email/phone values
 - Each row creates a new contact via `ContactService.createContact()`
 - Per-row failures are collected; successful rows are still imported

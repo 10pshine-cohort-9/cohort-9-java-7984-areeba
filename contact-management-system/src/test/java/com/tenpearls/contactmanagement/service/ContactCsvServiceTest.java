@@ -150,6 +150,28 @@ class ContactCsvServiceTest {
     }
 
     @Test
+    void importContactsCsv_withUnterminatedQuotedField_shouldThrow() {
+        String csv = """
+                firstName,lastName,title,email,emailType,phone,phoneType
+                Jane,Doe,"Manager
+                """;
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        InvalidCsvFileException exception = assertThrows(
+                InvalidCsvFileException.class,
+                () -> contactCsvService.importContactsCsv(file)
+        );
+
+        assertEquals("CSV file contains an unterminated quoted field", exception.getMessage());
+    }
+
+    @Test
     void exportContactsCsv_withNoContacts_shouldReturnHeaderOnly() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L))
