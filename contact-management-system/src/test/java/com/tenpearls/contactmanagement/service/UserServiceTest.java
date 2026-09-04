@@ -5,6 +5,7 @@ import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
 import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.entity.User;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
+import com.tenpearls.contactmanagement.exception.PhoneAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.exception.UserNotFoundException;
 import com.tenpearls.contactmanagement.repository.UserRepository;
@@ -163,6 +164,29 @@ class UserServiceTest {
         when(userRepository.existsByEmail("other@example.com")).thenReturn(true);
 
         assertThrows(EmailAlreadyRegisteredException.class, () -> userService.updateProfile(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateProfile_shouldRejectDuplicatePhoneNumber() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setEmail("test@example.com");
+        request.setPhoneNumber("9876543210");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setPhoneNumber("1234567890");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.existsByPhoneNumber("9876543210")).thenReturn(true);
+
+        PhoneAlreadyRegisteredException exception = assertThrows(
+                PhoneAlreadyRegisteredException.class,
+                () -> userService.updateProfile(request)
+        );
+
+        assertEquals("Phone number is already registered", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 }

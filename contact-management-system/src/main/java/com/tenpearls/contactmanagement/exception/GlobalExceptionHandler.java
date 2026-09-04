@@ -21,13 +21,50 @@ public class GlobalExceptionHandler {
                 .body(exception.getMessage());
     }
 
+    @ExceptionHandler(PhoneAlreadyRegisteredException.class)
+    public ResponseEntity<String> handlePhoneAlreadyRegistered(
+            PhoneAlreadyRegisteredException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(exception.getMessage());
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDataIntegrityViolation(
             DataIntegrityViolationException exception) {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body("Email is already registered");
+                .body(resolveDataIntegrityMessage(exception));
+    }
+
+    private String resolveDataIntegrityMessage(DataIntegrityViolationException exception) {
+        String message = collectExceptionMessages(exception).toLowerCase();
+
+        if (message.contains("uk_user_phone_number") || message.contains("phone_number")) {
+            return "Phone number is already registered";
+        }
+
+        if (message.contains("uk_user_email") || message.contains("email")) {
+            return "Email is already registered";
+        }
+
+        return "Email is already registered";
+    }
+
+    private String collectExceptionMessages(Throwable exception) {
+        StringBuilder messages = new StringBuilder();
+        Throwable current = exception;
+
+        while (current != null) {
+            if (current.getMessage() != null) {
+                messages.append(current.getMessage()).append(' ');
+            }
+            current = current.getCause();
+        }
+
+        return messages.toString();
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

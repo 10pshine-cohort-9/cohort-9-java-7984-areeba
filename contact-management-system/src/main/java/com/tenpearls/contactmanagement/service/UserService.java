@@ -5,6 +5,7 @@ import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
 import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.entity.User;
 import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
+import com.tenpearls.contactmanagement.exception.PhoneAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.exception.UserNotFoundException;
 import com.tenpearls.contactmanagement.repository.UserRepository;
@@ -60,7 +61,7 @@ public class UserService {
         if (phoneNumber != null
                 && !phoneNumber.equals(user.getPhoneNumber())
                 && userRepository.existsByPhoneNumber(phoneNumber)) {
-            throw new EmailAlreadyRegisteredException("Phone number is already registered");
+            throw new PhoneAlreadyRegisteredException("Phone number is already registered");
         }
 
         if (!newEmail.equalsIgnoreCase(user.getEmail())) {
