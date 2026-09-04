@@ -30,6 +30,24 @@ function resolveApiBaseUrl(rawUrl) {
 
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
+function assertSecureAuthenticatedTransport(hasToken) {
+  if (!hasToken || API_BASE_URL || typeof window === "undefined") {
+    return;
+  }
+
+  const isHttps = window.location.protocol === "https:";
+  const isLocalDevHttp =
+    import.meta.env.DEV &&
+    window.location.protocol === "http:" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+  if (!isHttps && !isLocalDevHttp) {
+    throw new Error(
+      "Authenticated API requests require HTTPS. Set VITE_API_URL to an https:// backend or serve the app over HTTPS."
+    );
+  }
+}
+
 let authToken = localStorage.getItem("token") || null;
 let onAuthCleared = null;
 
@@ -89,6 +107,7 @@ async function request(path, options = {}) {
 
   const token = getToken();
   if (token) {
+    assertSecureAuthenticatedTransport(true);
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -152,6 +171,7 @@ export const api = {
     const token = getToken();
     const headers = {};
     if (token) {
+      assertSecureAuthenticatedTransport(true);
       headers.Authorization = `Bearer ${token}`;
     }
 
@@ -176,6 +196,7 @@ export const api = {
 
     const headers = {};
     if (token) {
+      assertSecureAuthenticatedTransport(true);
       headers.Authorization = `Bearer ${token}`;
     }
 

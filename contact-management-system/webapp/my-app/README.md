@@ -75,6 +75,8 @@ VITE_API_URL=https://your-api-domain.com
 
 > `VITE_API_URL` must be `https://` in production. `http://localhost` is allowed during local development only (enforced in `client.js`).
 
+Serve the frontend over **HTTPS**. When `VITE_API_URL` is empty, authenticated requests use relative URLs and the client rejects bearer tokens unless the page is HTTPS (localhost HTTP is allowed during `npm run dev` only). Configure HTTPS redirects and HSTS on your reverse proxy or hosting platform.
+
 ---
 
 ## Run locally
