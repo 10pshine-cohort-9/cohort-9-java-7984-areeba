@@ -8,7 +8,9 @@ export default function AuthEntryPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [view, setView] = useState("landing");
+  const [view, setView] = useState(() =>
+    location.pathname === "/register" ? "register" : "landing"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,6 +20,11 @@ export default function AuthEntryPage() {
   useEffect(() => {
     if (location.pathname === "/register") {
       setView("register");
+      return;
+    }
+
+    if (location.pathname === "/login") {
+      setView((current) => (current === "register" ? "login" : current));
     }
   }, [location.pathname]);
 
