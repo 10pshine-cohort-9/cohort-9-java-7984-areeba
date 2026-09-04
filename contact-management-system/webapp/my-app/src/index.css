@@ -1271,7 +1271,7 @@ input::placeholder {
   justify-content: center;
   z-index: 300;
   padding: 1rem;
-  animation: fadeIn 0.15s ease;
+  animation: fade-in 0.15s ease;
 }
 
 .modal {
@@ -1281,7 +1281,7 @@ input::placeholder {
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 440px;
-  animation: slideUp 0.2s ease;
+  animation: slide-up 0.2s ease;
 }
 
 .modal-header {
@@ -1465,12 +1465,12 @@ input::placeholder {
   display: none;
 }
 
-@keyframes fadeIn {
+@keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes slideUp {
+@keyframes slide-up {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
