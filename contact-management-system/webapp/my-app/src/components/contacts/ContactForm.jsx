@@ -63,8 +63,18 @@ export default function ContactForm({ initialValues, onSubmit, submitLabel }) {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         title: form.title.trim() || null,
-        emails: form.emails.filter((item) => item.email.trim()),
-        phones: form.phones.filter((item) => item.phoneNumber.trim()),
+        emails: form.emails
+          .map((item) => ({
+            ...item,
+            email: item.email.trim(),
+          }))
+          .filter((item) => item.email),
+        phones: form.phones
+          .map((item) => ({
+            ...item,
+            phoneNumber: item.phoneNumber.trim(),
+          }))
+          .filter((item) => item.phoneNumber),
       };
       await onSubmit(payload);
     } catch (err) {
