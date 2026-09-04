@@ -15,7 +15,7 @@ Full-stack contact directory built for **Cohort 9 — Java + React**. Users can 
 ## Prerequisites
 
 - **Java 17+**
-- **Maven** (or use included `./mvnw`)
+- **Maven** (or use included `.\mvnw.cmd` on Windows / `./mvnw` on macOS/Linux)
 - **PostgreSQL** running locally
 - **Node.js 20.19+** or **22.12+** and **npm** (for frontend — required by Vite 8)
 
@@ -56,7 +56,7 @@ Copy `webapp/my-app/.env.example` to `webapp/my-app/.env`.
 From `contact-management-system/`:
 
 ```powershell
-./mvnw spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 API base URL: `http://localhost:8080`
@@ -74,7 +74,7 @@ App URL: `http://localhost:5173`
 ## Run tests
 
 ```powershell
-./mvnw clean test
+.\mvnw.cmd clean test
 ```
 
 Tests use an in-memory H2 database (see `src/test/resources/application.properties`).
@@ -91,7 +91,7 @@ $env:SONAR_TOKEN = "your-sonar-token"
 2. Run analysis with coverage:
 
 ```powershell
-./mvnw clean verify sonar:sonar `
+.\mvnw.cmd clean verify sonar:sonar `
   -Dsonar.host.url=$env:SONAR_HOST_URL `
   -Dsonar.token=$env:SONAR_TOKEN
 ```
