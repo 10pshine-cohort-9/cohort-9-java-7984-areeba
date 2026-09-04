@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import Card from "../components/common/Card";
@@ -32,8 +32,10 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const loadRequestIdRef = useRef(0);
 
   const loadContacts = async (pageNumber = page) => {
+    const requestId = ++loadRequestIdRef.current;
     setLoading(true);
     setError("");
 
@@ -43,13 +45,18 @@ export default function ContactsPage() {
         ? await api.searchContacts(firstName.trim(), lastName.trim(), pageNumber, 10, sort)
         : await api.listContacts(pageNumber, 10, sort);
 
+      if (requestId !== loadRequestIdRef.current) return;
+
       setContacts(response.content);
       setTotalPages(response.totalPages);
       setPage(response.page);
     } catch (err) {
+      if (requestId !== loadRequestIdRef.current) return;
       setError(err.message || "Failed to load contacts");
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
