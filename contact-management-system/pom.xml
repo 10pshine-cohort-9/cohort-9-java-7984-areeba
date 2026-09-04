@@ -14,6 +14,14 @@
 
 	<properties>
 		<java.version>17</java.version>
+		<sonar.projectKey>contact-management-system</sonar.projectKey>
+		<sonar.projectName>Contact Management System</sonar.projectName>
+		<sonar.projectVersion>${project.version}</sonar.projectVersion>
+		<sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+		<sonar.java.binaries>target/classes</sonar.java.binaries>
+		<sonar.java.test.binaries>target/test-classes</sonar.java.test.binaries>
+		<sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>**/webapp/my-app/node_modules/**,**/webapp/my-app/dist/**</sonar.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -170,6 +178,11 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>4.0.0.4121</version>
 			</plugin>
 		</plugins>
 	</build>

@@ -96,7 +96,7 @@ $env:SONAR_TOKEN = "your-sonar-token"
   -Dsonar.token=$env:SONAR_TOKEN
 ```
 
-Configuration: `sonar-project.properties` and JaCoCo in `pom.xml`.
+Configuration: Sonar properties and JaCoCo in `pom.xml`.
 
 ## API overview
 
@@ -140,7 +140,6 @@ contact-management-system/
 ├── src/test/java/...     # Unit & integration tests
 ├── webapp/my-app/        # React frontend (Vite)
 ├── pom.xml
-├── sonar-project.properties
 └── README.md
 ```
 
