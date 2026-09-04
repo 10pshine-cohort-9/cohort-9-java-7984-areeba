@@ -54,4 +54,42 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertEquals("Phone number is already registered", response.getBody());
     }
+
+    @Test
+    void handleDataIntegrityViolation_shouldReturnGenericMessageForForeignKeyViolation() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+                "could not execute statement [ERROR: insert or update on table \"contacts\" "
+                        + "violates foreign key constraint \"fk_contact_user_id\"]"
+        );
+
+        ResponseEntity<String> response = handler.handleDataIntegrityViolation(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Could not complete request due to a data integrity violation", response.getBody());
+    }
+
+    @Test
+    void handleDataIntegrityViolation_shouldReturnGenericMessageForNotNullViolation() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+                "could not execute statement [ERROR: null value in column \"first_name\" "
+                        + "of relation \"contacts\" violates not-null constraint]"
+        );
+
+        ResponseEntity<String> response = handler.handleDataIntegrityViolation(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Could not complete request due to a data integrity violation", response.getBody());
+    }
+
+    @Test
+    void handleDataIntegrityViolation_shouldNotMisclassifyEmailInForeignKeyMessage() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+                "could not execute statement [ERROR: update on table \"contact_emails\" "
+                        + "violates foreign key constraint \"fk_contact_email_contact\"]"
+        );
+
+        ResponseEntity<String> response = handler.handleDataIntegrityViolation(exception);
+
+        assertEquals("Could not complete request due to a data integrity violation", response.getBody());
+    }
 }

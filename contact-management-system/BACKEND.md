@@ -431,7 +431,7 @@ Field: file (must be .csv)
 |-----------|------|------|
 | `EmailAlreadyRegisteredException` | 409 | `"Email is already registered"` |
 | `PhoneAlreadyRegisteredException` | 409 | `"Phone number is already registered"` |
-| `DataIntegrityViolationException` | 409 | Constraint-specific message (email or phone) |
+| `DataIntegrityViolationException` | 409 | `uk_user_email` → email message; `uk_user_phone_number` → phone message; otherwise generic integrity message |
 | `InvalidCredentialsException` | 401 | Exception message |
 | `UserNotFoundException` | 404 | Exception message |
 | `ContactNotFoundException` | 404 | Exception message |

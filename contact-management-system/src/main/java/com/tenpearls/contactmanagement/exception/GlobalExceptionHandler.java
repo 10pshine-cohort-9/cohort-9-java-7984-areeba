@@ -12,6 +12,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String EMAIL_UNIQUE_CONSTRAINT = "uk_user_email";
+    private static final String PHONE_UNIQUE_CONSTRAINT = "uk_user_phone_number";
+    private static final String GENERIC_INTEGRITY_MESSAGE =
+            "Could not complete request due to a data integrity violation";
+
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
     public ResponseEntity<String> handleEmailAlreadyRegistered(
             EmailAlreadyRegisteredException exception) {
@@ -42,15 +47,15 @@ public class GlobalExceptionHandler {
     private String resolveDataIntegrityMessage(DataIntegrityViolationException exception) {
         String message = collectExceptionMessages(exception).toLowerCase();
 
-        if (message.contains("uk_user_phone_number") || message.contains("phone_number")) {
+        if (message.contains(PHONE_UNIQUE_CONSTRAINT)) {
             return "Phone number is already registered";
         }
 
-        if (message.contains("uk_user_email") || message.contains("email")) {
+        if (message.contains(EMAIL_UNIQUE_CONSTRAINT)) {
             return "Email is already registered";
         }
 
-        return "Email is already registered";
+        return GENERIC_INTEGRITY_MESSAGE;
     }
 
     private String collectExceptionMessages(Throwable exception) {
