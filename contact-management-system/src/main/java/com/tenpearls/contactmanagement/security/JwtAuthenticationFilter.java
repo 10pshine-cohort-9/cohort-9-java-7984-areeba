@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.security;
 
 import com.tenpearls.contactmanagement.entity.User;
 import com.tenpearls.contactmanagement.repository.UserRepository;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -36,6 +37,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return "/api/auth/login".equals(path) || "/api/auth/register".equals(path);
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -51,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authHeader.substring(7).trim();
-            String email = jwtService.extractEmail(token);
+            String email = EmailNormalizer.normalize(jwtService.extractEmail(token));
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 User user = userRepository.findByEmail(email)

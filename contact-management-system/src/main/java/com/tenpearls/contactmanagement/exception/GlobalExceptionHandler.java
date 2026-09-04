@@ -12,9 +12,23 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String EMAIL_UNIQUE_CONSTRAINT = "uk_user_email";
+    private static final String PHONE_UNIQUE_CONSTRAINT = "uk_user_phone_number";
+    private static final String GENERIC_INTEGRITY_MESSAGE =
+            "Could not complete request due to a data integrity violation";
+
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
     public ResponseEntity<String> handleEmailAlreadyRegistered(
             EmailAlreadyRegisteredException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(exception.getMessage());
+    }
+
+    @ExceptionHandler(PhoneAlreadyRegisteredException.class)
+    public ResponseEntity<String> handlePhoneAlreadyRegistered(
+            PhoneAlreadyRegisteredException exception) {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
@@ -27,7 +41,35 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body("Email is already registered");
+                .body(resolveDataIntegrityMessage(exception));
+    }
+
+    private String resolveDataIntegrityMessage(DataIntegrityViolationException exception) {
+        String message = collectExceptionMessages(exception).toLowerCase();
+
+        if (message.contains(PHONE_UNIQUE_CONSTRAINT)) {
+            return "Phone number is already registered";
+        }
+
+        if (message.contains(EMAIL_UNIQUE_CONSTRAINT)) {
+            return "Email is already registered";
+        }
+
+        return GENERIC_INTEGRITY_MESSAGE;
+    }
+
+    private String collectExceptionMessages(Throwable exception) {
+        StringBuilder messages = new StringBuilder();
+        Throwable current = exception;
+
+        while (current != null) {
+            if (current.getMessage() != null) {
+                messages.append(current.getMessage()).append(' ');
+            }
+            current = current.getCause();
+        }
+
+        return messages.toString();
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -60,6 +102,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(exception.getMessage());
+    }
+
+    @ExceptionHandler(ContactNotFoundException.class)
+    public ResponseEntity<String> handleContactNotFound(ContactNotFoundException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCsvFileException.class)
+    public ResponseEntity<String> handleInvalidCsvFile(InvalidCsvFileException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(exception.getMessage());
     }
 }

@@ -14,6 +14,7 @@ import com.tenpearls.contactmanagement.dto.auth.LoginResponse;
 import java.util.Optional;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.security.JwtService;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 
 @Service
 public class AuthService {
@@ -36,14 +37,15 @@ public class AuthService {
     public RegisterResponse register(RegisterRequest request) {
 
         logger.info("Registration attempt");
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = EmailNormalizer.normalize(request.getEmail());
+        if (userRepository.existsByEmail(email)) {
             logger.warn("Registration failed. Email already registered");
             throw new EmailAlreadyRegisteredException("Email is already registered");        }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPassword(encodedPassword);
 
         User savedUser = userRepository.save(user);
@@ -60,7 +62,8 @@ public class AuthService {
 
         logger.info("Login attempt for email: {}", request.getEmail());
 
-        Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        String email = EmailNormalizer.normalize(request.getEmail());
+        Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isEmpty()) {
             logger.warn("Login failed. User not found for email: {}", request.getEmail());
