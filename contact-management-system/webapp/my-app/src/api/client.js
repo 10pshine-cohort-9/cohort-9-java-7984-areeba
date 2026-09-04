@@ -31,6 +31,11 @@ function resolveApiBaseUrl(rawUrl) {
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
 let authToken = null;
+let onAuthCleared = null;
+
+export function setAuthClearHandler(handler) {
+  onAuthCleared = handler;
+}
 
 export function getToken() {
   return authToken;
@@ -43,6 +48,7 @@ export function setToken(token) {
 export function clearAuth() {
   authToken = null;
   localStorage.removeItem("token");
+  onAuthCleared?.();
 }
 
 async function request(path, options = {}) {

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, clearAuth, setToken } from "../api/client";
+import { api, clearAuth, setAuthClearHandler, setToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -15,6 +15,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     localStorage.removeItem("token");
+    setAuthClearHandler(() => {
+      setTokenState(null);
+    });
+    return () => setAuthClearHandler(null);
   }, []);
 
   const value = useMemo(
@@ -44,7 +48,6 @@ export function AuthProvider({ children }) {
       },
       logout: () => {
         clearAuth();
-        setTokenState(null);
       },
     }),
     [token]
