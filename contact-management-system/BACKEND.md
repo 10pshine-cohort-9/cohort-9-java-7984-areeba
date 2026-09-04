@@ -137,7 +137,7 @@ Hibernate `ddl-auto=update` creates and migrates tables automatically.
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | BIGINT | PK, auto-increment |
-| email | VARCHAR | Unique (`uk_user_email`) |
+| email | VARCHAR | Unique (`uk_user_email`); stored in lowercase |
 | password | VARCHAR | BCrypt hash, not null |
 | phone_number | VARCHAR | Unique (`uk_user_phone_number`), nullable |
 | token_version | INT | Default 0; incremented on password change / email change |
@@ -205,6 +205,10 @@ All other `/api/**` endpoints require a valid JWT.
 - User changes email address
 
 Old tokens are rejected even if not yet expired.
+
+### Email canonicalization
+
+User emails are normalized to lowercase (`trim` + `toLowerCase`) before lookup and persistence via `EmailNormalizer`. This ensures `alice@example.com` and `ALICE@example.com` are treated as the same address and `uk_user_email` enforces uniqueness on the canonical value.
 
 ---
 

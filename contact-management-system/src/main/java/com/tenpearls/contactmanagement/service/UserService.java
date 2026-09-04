@@ -9,6 +9,7 @@ import com.tenpearls.contactmanagement.exception.PhoneAlreadyRegisteredException
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.exception.UserNotFoundException;
 import com.tenpearls.contactmanagement.repository.UserRepository;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,7 +30,9 @@ public class UserService {
     }
 
     public CurrentUserResponse getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = EmailNormalizer.normalize(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -43,13 +46,15 @@ public class UserService {
     }
 
     public CurrentUserResponse updateProfile(UpdateProfileRequest request) {
-        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentEmail = EmailNormalizer.normalize(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        String newEmail = request.getEmail().trim();
-        if (!newEmail.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
+        String newEmail = EmailNormalizer.normalize(request.getEmail());
+        if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
             throw new EmailAlreadyRegisteredException("Email is already registered");
         }
 
@@ -64,7 +69,7 @@ public class UserService {
             throw new PhoneAlreadyRegisteredException("Phone number is already registered");
         }
 
-        if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+        if (!newEmail.equals(user.getEmail())) {
             user.setEmail(newEmail);
             user.setTokenVersion(user.getTokenVersion() + 1);
         }
@@ -83,7 +88,9 @@ public class UserService {
     }
 
     public void changePassword(ChangePasswordRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = EmailNormalizer.normalize(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

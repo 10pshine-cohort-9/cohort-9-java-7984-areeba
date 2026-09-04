@@ -168,6 +168,23 @@ class UserServiceTest {
     }
 
     @Test
+    void updateProfile_shouldRejectDuplicateEmailIgnoringCase() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setEmail("OTHER@example.com");
+        request.setPhoneNumber("1234567890");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail("other@example.com")).thenReturn(true);
+
+        assertThrows(EmailAlreadyRegisteredException.class, () -> userService.updateProfile(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void updateProfile_shouldRejectDuplicatePhoneNumber() {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setEmail("test@example.com");

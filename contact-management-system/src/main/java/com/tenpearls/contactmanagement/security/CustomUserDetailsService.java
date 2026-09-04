@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.security;
 
 import com.tenpearls.contactmanagement.entity.User;
 import com.tenpearls.contactmanagement.repository.UserRepository;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(EmailNormalizer.normalize(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         return new org.springframework.security.core.userdetails.User(

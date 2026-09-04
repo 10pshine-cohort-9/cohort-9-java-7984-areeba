@@ -18,6 +18,7 @@ import com.tenpearls.contactmanagement.repository.ContactEmailRepository;
 import com.tenpearls.contactmanagement.repository.ContactPhoneRepository;
 import com.tenpearls.contactmanagement.repository.ContactRepository;
 import com.tenpearls.contactmanagement.repository.UserRepository;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -130,7 +131,9 @@ public class ContactService {
     }
 
     private User getAuthenticatedUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = EmailNormalizer.normalize(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
