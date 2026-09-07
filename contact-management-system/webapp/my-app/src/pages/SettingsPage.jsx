@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, clearAuth } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../api/client";
 import Card from "../components/common/Card";
 import { Icons } from "../components/common/Icons";
 import { getDisplayName } from "../utils/contactUtils";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [user, setUser] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [email, setEmail] = useState("");
@@ -75,7 +77,7 @@ export default function SettingsPage() {
 
       if (previousEmail && previousEmail !== updated.email) {
         setProfileMessage("Email updated. Please sign in again with your new email.");
-        clearAuth();
+        logout();
         setTimeout(() => navigate("/login"), 1500);
       }
     } catch (err) {

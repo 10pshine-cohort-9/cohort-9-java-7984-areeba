@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment ###
+.env
+webapp/my-app/.env
+
+### Frontend ###
+webapp/my-app/node_modules/
+webapp/my-app/dist/
+
+### Sonar ###
+.scannerwork/

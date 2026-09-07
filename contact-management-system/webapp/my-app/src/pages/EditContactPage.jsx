@@ -10,9 +10,15 @@ export default function EditContactPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    setInitialValues(null);
+    setError("");
+
     const loadContact = async () => {
       try {
         const contact = await api.getContact(id);
+        if (cancelled) return;
+
         setInitialValues({
           firstName: contact.firstName,
           lastName: contact.lastName,
@@ -21,11 +27,16 @@ export default function EditContactPage() {
           phones: contact.phones?.length ? contact.phones : createEmptyContact().phones,
         });
       } catch (err) {
+        if (cancelled) return;
         setError(err.message || "Failed to load contact");
       }
     };
 
     loadContact();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (error) {
@@ -38,6 +49,7 @@ export default function EditContactPage() {
 
   return (
     <ContactForm
+      key={id}
       initialValues={initialValues}
       submitLabel="Update Contact"
       onSubmit={async (payload) => {

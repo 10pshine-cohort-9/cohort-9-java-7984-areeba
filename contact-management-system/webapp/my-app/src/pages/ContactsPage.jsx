@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import Card from "../components/common/Card";
@@ -20,6 +20,25 @@ const SORT_OPTIONS = [
   { value: "firstName,asc", label: "First Name (A–Z)" },
 ];
 
+const PAGE_SIZE = 10;
+
+async function fetchAllMatchingContacts(hasSearch, firstName, lastName, sort) {
+  const fetchPage = (pageNumber) =>
+    hasSearch
+      ? api.searchContacts(firstName, lastName, pageNumber, PAGE_SIZE, sort)
+      : api.listContacts(pageNumber, PAGE_SIZE, sort);
+
+  const firstPage = await fetchPage(0);
+  const allContacts = [...firstPage.content];
+
+  for (let pageNumber = 1; pageNumber < firstPage.totalPages; pageNumber++) {
+    const nextPage = await fetchPage(pageNumber);
+    allContacts.push(...nextPage.content);
+  }
+
+  return allContacts;
+}
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState([]);
   const [page, setPage] = useState(0);
@@ -40,16 +59,35 @@ export default function ContactsPage() {
     setError("");
 
     try {
-      const hasSearch = firstName.trim() || lastName.trim();
-      const response = hasSearch
-        ? await api.searchContacts(firstName.trim(), lastName.trim(), pageNumber, 10, sort)
-        : await api.listContacts(pageNumber, 10, sort);
+      const trimmedFirst = firstName.trim();
+      const trimmedLast = lastName.trim();
+      const hasSearch = trimmedFirst || trimmedLast;
+
+      if (typeFilter === "all") {
+        const response = hasSearch
+          ? await api.searchContacts(trimmedFirst, trimmedLast, pageNumber, PAGE_SIZE, sort)
+          : await api.listContacts(pageNumber, PAGE_SIZE, sort);
+
+        if (requestId !== loadRequestIdRef.current) return;
+
+        setContacts(response.content);
+        setTotalPages(response.totalPages);
+        setPage(response.page);
+        return;
+      }
+
+      const allContacts = await fetchAllMatchingContacts(hasSearch, trimmedFirst, trimmedLast, sort);
+      const filtered = allContacts.filter((contact) => getContactType(contact) === typeFilter);
+      const filteredTotalPages = filtered.length === 0 ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
+      const safePage =
+        filteredTotalPages === 0 ? 0 : Math.min(pageNumber, filteredTotalPages - 1);
+      const start = safePage * PAGE_SIZE;
 
       if (requestId !== loadRequestIdRef.current) return;
 
-      setContacts(response.content);
-      setTotalPages(response.totalPages);
-      setPage(response.page);
+      setContacts(filtered.slice(start, start + PAGE_SIZE));
+      setTotalPages(filteredTotalPages);
+      setPage(safePage);
     } catch (err) {
       if (requestId !== loadRequestIdRef.current) return;
       setError(err.message || "Failed to load contacts");
@@ -62,12 +100,7 @@ export default function ContactsPage() {
 
   useEffect(() => {
     loadContacts(0);
-  }, [sort]);
-
-  const filteredContacts = useMemo(() => {
-    if (typeFilter === "all") return contacts;
-    return contacts.filter((contact) => getContactType(contact) === typeFilter);
-  }, [contacts, typeFilter]);
+  }, [sort, typeFilter]);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -148,15 +181,15 @@ export default function ContactsPage() {
       {loading && <p className="loading-text">Loading contacts...</p>}
       {error && <p className="error">{error}</p>}
 
-      {!loading && filteredContacts.length === 0 && (
+      {!loading && contacts.length === 0 && (
         <Card className="empty-state-card">
           <p>No contacts found.</p>
         </Card>
       )}
 
-      {!loading && filteredContacts.length > 0 && (
+      {!loading && contacts.length > 0 && (
         <Card className="table-card">
-          <ContactTable contacts={filteredContacts} onDelete={setDeleteTarget} />
+          <ContactTable contacts={contacts} onDelete={setDeleteTarget} />
         </Card>
       )}
 

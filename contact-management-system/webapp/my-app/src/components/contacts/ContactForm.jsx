@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../common/Card";
 import IconButton from "../common/IconButton";
 import { Icons } from "../common/Icons";
@@ -23,6 +23,12 @@ export default function ContactForm({ initialValues, onSubmit, submitLabel }) {
   const [form, setForm] = useState(initialValues);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setForm(initialValues);
+    setError("");
+    setLoading(false);
+  }, [initialValues]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
