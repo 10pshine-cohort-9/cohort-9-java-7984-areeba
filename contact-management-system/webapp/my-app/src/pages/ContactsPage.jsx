@@ -51,6 +51,10 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const fileInputRef = useRef(null);
   const loadRequestIdRef = useRef(0);
 
   const loadContacts = async (pageNumber = page) => {
@@ -107,6 +111,56 @@ export default function ContactsPage() {
     loadContacts(0);
   };
 
+  const handleExport = async () => {
+    setError("");
+    setSuccessMessage("");
+    setExporting(true);
+
+    try {
+      const blob = await api.exportContacts();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "contacts.csv";
+      link.click();
+      window.URL.revokeObjectURL(url);
+      setSuccessMessage("Contacts exported successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to export contacts");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setError("");
+    setSuccessMessage("");
+    setImporting(true);
+
+    try {
+      const result = await api.importContacts(file);
+      const failedSummary =
+        result.failedCount > 0 ? ` ${result.failedCount} row(s) failed.` : "";
+      setSuccessMessage(`Imported ${result.importedCount} contact(s).${failedSummary}`);
+      await loadContacts(0);
+    } catch (err) {
+      setError(err.message || "Failed to import contacts");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
 
@@ -129,9 +183,34 @@ export default function ContactsPage() {
           <h2 className="page-title">Contacts</h2>
           <p className="muted">Manage and organize your contacts</p>
         </div>
-        <Link to="/contacts/new" className="btn btn-primary">
-          <Icons.Plus size={18} /> Add Contact
-        </Link>
+        <div className="page-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="visually-hidden"
+            onChange={handleImportFile}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleImportClick}
+            disabled={importing}
+          >
+            {importing ? "Importing..." : "Import CSV"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? "Exporting..." : "Export CSV"}
+          </button>
+          <Link to="/contacts/new" className="btn btn-primary">
+            <Icons.Plus size={18} /> Add Contact
+          </Link>
+        </div>
       </div>
 
       <Card className="search-card">
@@ -179,6 +258,7 @@ export default function ContactsPage() {
       </Card>
 
       {loading && <p className="loading-text">Loading contacts...</p>}
+      {successMessage && <p className="success settings-banner">{successMessage}</p>}
       {error && <p className="error">{error}</p>}
 
       {!loading && contacts.length === 0 && (

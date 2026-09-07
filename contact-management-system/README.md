@@ -125,6 +125,8 @@ Configuration: Sonar properties and JaCoCo in `pom.xml`.
 | DELETE | `/api/contacts/{id}` | Delete contact |
 | GET | `/api/contacts` | List (page, size, sort) |
 | GET | `/api/contacts/search` | Search by firstName / lastName |
+| GET | `/api/contacts/export` | Export all contacts as CSV |
+| POST | `/api/contacts/import` | Import contacts from CSV file (`multipart/form-data`, field: `file`) |
 
 Send the JWT in the header:
 

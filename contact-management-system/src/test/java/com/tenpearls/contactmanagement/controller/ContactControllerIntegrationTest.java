@@ -15,6 +15,7 @@ import com.tenpearls.contactmanagement.repository.ContactRepository;
 import com.tenpearls.contactmanagement.repository.UserRepository;
 import com.tenpearls.contactmanagement.security.JwtAuthenticationEntryPoint;
 import com.tenpearls.contactmanagement.security.JwtService;
+import com.tenpearls.contactmanagement.service.ContactCsvService;
 import com.tenpearls.contactmanagement.service.ContactService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.nio.charset.StandardCharsets;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,14 +42,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.containsString;
 
 @WebMvcTest(controllers = ContactController.class)
 @Import({
         SecurityConfig.class,
         PasswordConfig.class,
         ContactService.class,
+        ContactCsvService.class,
         JwtService.class,
         JwtAuthenticationEntryPoint.class
 })
@@ -224,6 +232,64 @@ class ContactControllerIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].firstName").value("John"));
+    }
+
+    @Test
+    void exportContacts_withValidBearerToken_returnsCsvFile() throws Exception {
+        User user = buildUser();
+        Contact contact = buildContact(1L, user);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.findAllByUserIdOrderByLastNameAscFirstNameAsc(1L)).thenReturn(List.of(contact));
+        when(contactEmailRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getEmails());
+        when(contactPhoneRepository.findByContact_IdIn(List.of(1L))).thenReturn(contact.getPhones());
+
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
+
+        mockMvc.perform(get("/api/contacts/export")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("contacts.csv")));
+    }
+
+    @Test
+    void importContacts_withValidCsv_returns200() throws Exception {
+        User user = buildUser();
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> {
+            Contact savedContact = invocation.getArgument(0);
+            savedContact.setId(2L);
+            return savedContact;
+        });
+        when(contactRepository.findByIdAndUserId(2L, 1L)).thenAnswer(invocation -> {
+            Contact savedContact = buildContact(2L, user);
+            savedContact.setFirstName("Jane");
+            savedContact.setLastName("Smith");
+            return Optional.of(savedContact);
+        });
+        when(contactEmailRepository.findByContactId(2L)).thenReturn(List.of());
+        when(contactPhoneRepository.findByContactId(2L)).thenReturn(List.of());
+
+        String csv = """
+                firstName,lastName,title,email,emailType,phone,phoneType
+                Jane,Smith,Manager,jane@example.com,WORK,9876543210,WORK
+                """;
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "contacts.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        String token = jwtService.generateToken("test@example.com", 1L, 0);
+
+        mockMvc.perform(multipart("/api/contacts/import")
+                        .file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.importedCount").value(1))
+                .andExpect(jsonPath("$.failedCount").value(0));
     }
 
     @Test
