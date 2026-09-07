@@ -2,7 +2,9 @@ package com.tenpearls.contactmanagement.service;
 
 import com.tenpearls.contactmanagement.dto.user.ChangePasswordRequest;
 import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
+import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.entity.User;
+import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.exception.UserNotFoundException;
 import com.tenpearls.contactmanagement.repository.UserRepository;
@@ -30,6 +32,46 @@ public class UserService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return new CurrentUserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getCreatedAt()
+        );
+    }
+
+    public CurrentUserResponse updateProfile(UpdateProfileRequest request) {
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        String newEmail = request.getEmail().trim();
+        if (!newEmail.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
+            throw new EmailAlreadyRegisteredException("Email is already registered");
+        }
+
+        String phoneNumber = request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null;
+        if (phoneNumber != null && phoneNumber.isEmpty()) {
+            phoneNumber = null;
+        }
+
+        if (phoneNumber != null
+                && !phoneNumber.equals(user.getPhoneNumber())
+                && userRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new EmailAlreadyRegisteredException("Phone number is already registered");
+        }
+
+        if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+            user.setEmail(newEmail);
+            user.setTokenVersion(user.getTokenVersion() + 1);
+        }
+
+        user.setPhoneNumber(phoneNumber);
+        userRepository.save(user);
+
+        logger.info("Profile updated for user id: {}", user.getId());
 
         return new CurrentUserResponse(
                 user.getId(),

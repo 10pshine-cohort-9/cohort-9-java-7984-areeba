@@ -2,6 +2,7 @@ package com.tenpearls.contactmanagement.controller;
 
 import com.tenpearls.contactmanagement.dto.user.ChangePasswordRequest;
 import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
+import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,11 @@ public class UserController {
     @GetMapping("/me")
     public CurrentUserResponse getCurrentUser() {
         return userService.getCurrentUser();
+    }
+
+    @PutMapping("/me")
+    public CurrentUserResponse updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        return userService.updateProfile(request);
     }
 
     @PutMapping("/me/password")

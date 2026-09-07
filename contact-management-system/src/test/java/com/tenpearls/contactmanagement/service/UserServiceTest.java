@@ -2,7 +2,9 @@ package com.tenpearls.contactmanagement.service;
 
 import com.tenpearls.contactmanagement.dto.user.ChangePasswordRequest;
 import com.tenpearls.contactmanagement.dto.user.CurrentUserResponse;
+import com.tenpearls.contactmanagement.dto.user.UpdateProfileRequest;
 import com.tenpearls.contactmanagement.entity.User;
+import com.tenpearls.contactmanagement.exception.EmailAlreadyRegisteredException;
 import com.tenpearls.contactmanagement.exception.InvalidCredentialsException;
 import com.tenpearls.contactmanagement.exception.UserNotFoundException;
 import com.tenpearls.contactmanagement.repository.UserRepository;
@@ -121,6 +123,46 @@ class UserServiceTest {
         when(passwordEncoder.matches("WrongPassword", "encoded-old-password")).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> userService.changePassword(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateProfile_shouldUpdatePhoneNumber() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setEmail("test@example.com");
+        request.setPhoneNumber("9876543210");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setPhoneNumber(null);
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 1, 10, 0));
+        user.setTokenVersion(0);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        CurrentUserResponse response = userService.updateProfile(request);
+
+        assertEquals("9876543210", response.getPhoneNumber());
+        assertEquals(0, user.getTokenVersion());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateProfile_shouldRejectDuplicateEmail() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setEmail("other@example.com");
+        request.setPhoneNumber("1234567890");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail("other@example.com")).thenReturn(true);
+
+        assertThrows(EmailAlreadyRegisteredException.class, () -> userService.updateProfile(request));
         verify(userRepository, never()).save(any(User.class));
     }
 }
