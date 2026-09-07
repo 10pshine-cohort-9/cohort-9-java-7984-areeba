@@ -29,7 +29,7 @@ export default function DashboardPage() {
       try {
         const [userResponse, contactsResult] = await Promise.all([
           api.getCurrentUser(),
-          api.listAllContacts("lastName,asc"),
+          api.listAllContacts("id,desc"),
         ]);
 
         setUser(userResponse);

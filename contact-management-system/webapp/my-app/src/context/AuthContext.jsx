@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, clearAuth, setAuthClearHandler, setToken } from "../api/client";
+import { api, clearAuth, getToken, setAuthClearHandler, setToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -11,10 +11,9 @@ export class RegistrationLoginError extends Error {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setTokenState] = useState(null);
+  const [token, setTokenState] = useState(() => getToken());
 
   useEffect(() => {
-    localStorage.removeItem("token");
     setAuthClearHandler(() => {
       setTokenState(null);
     });

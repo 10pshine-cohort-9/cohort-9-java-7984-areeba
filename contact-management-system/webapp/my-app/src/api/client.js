@@ -30,7 +30,25 @@ function resolveApiBaseUrl(rawUrl) {
 
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
-let authToken = null;
+function assertSecureAuthenticatedTransport(hasToken) {
+  if (!hasToken || API_BASE_URL || typeof window === "undefined") {
+    return;
+  }
+
+  const isHttps = window.location.protocol === "https:";
+  const isLocalDevHttp =
+    import.meta.env.DEV &&
+    window.location.protocol === "http:" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+  if (!isHttps && !isLocalDevHttp) {
+    throw new Error(
+      "Authenticated API requests require HTTPS. Set VITE_API_URL to an https:// backend or serve the app over HTTPS."
+    );
+  }
+}
+
+let authToken = localStorage.getItem("token") || null;
 let onAuthCleared = null;
 
 export function setAuthClearHandler(handler) {
@@ -43,12 +61,42 @@ export function getToken() {
 
 export function setToken(token) {
   authToken = token || null;
+
+  if (authToken) {
+    localStorage.setItem("token", authToken);
+  } else {
+    localStorage.removeItem("token");
+  }
 }
 
 export function clearAuth() {
   authToken = null;
   localStorage.removeItem("token");
   onAuthCleared?.();
+}
+
+function parseResponseBody(text) {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getErrorMessage(data, fallback) {
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (data && typeof data.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  return fallback;
 }
 
 async function request(path, options = {}) {
@@ -59,6 +107,7 @@ async function request(path, options = {}) {
 
   const token = getToken();
   if (token) {
+    assertSecureAuthenticatedTransport(true);
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -77,11 +126,10 @@ async function request(path, options = {}) {
   }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  const data = parseResponseBody(text);
 
   if (!response.ok) {
-    const message = typeof data === "string" ? data : data?.message || "Request failed";
-    throw new Error(message);
+    throw new Error(getErrorMessage(data, "Request failed"));
   }
 
   return data;
@@ -123,6 +171,7 @@ export const api = {
     const token = getToken();
     const headers = {};
     if (token) {
+      assertSecureAuthenticatedTransport(true);
       headers.Authorization = `Bearer ${token}`;
     }
 
@@ -147,6 +196,7 @@ export const api = {
 
     const headers = {};
     if (token) {
+      assertSecureAuthenticatedTransport(true);
       headers.Authorization = `Bearer ${token}`;
     }
 
@@ -162,11 +212,10 @@ export const api = {
     }
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    const data = parseResponseBody(text);
 
     if (!response.ok) {
-      const message = typeof data === "string" ? data : data?.message || "Failed to import contacts";
-      throw new Error(message);
+      throw new Error(getErrorMessage(data, "Failed to import contacts"));
     }
 
     return data;

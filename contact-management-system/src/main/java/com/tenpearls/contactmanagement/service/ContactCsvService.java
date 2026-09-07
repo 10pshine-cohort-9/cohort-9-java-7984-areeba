@@ -18,6 +18,7 @@ import com.tenpearls.contactmanagement.repository.ContactEmailRepository;
 import com.tenpearls.contactmanagement.repository.ContactPhoneRepository;
 import com.tenpearls.contactmanagement.repository.ContactRepository;
 import com.tenpearls.contactmanagement.repository.UserRepository;
+import com.tenpearls.contactmanagement.util.EmailNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,12 +26,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PushbackReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +46,8 @@ public class ContactCsvService {
 
     private static final String CSV_HEADER =
             "firstName,lastName,title,email,emailType,phone,phoneType";
+
+    private static final String MULTI_VALUE_SEPARATOR = "|";
 
     private final ContactRepository contactRepository;
     private final ContactEmailRepository contactEmailRepository;
@@ -86,13 +91,17 @@ public class ContactCsvService {
         StringBuilder csv = new StringBuilder(CSV_HEADER).append('\n');
 
         for (Contact contact : contacts) {
-            List<ContactEmail> emails = emailsByContactId.getOrDefault(contact.getId(), Collections.emptyList());
-            List<ContactPhone> phones = phonesByContactId.getOrDefault(contact.getId(), Collections.emptyList());
+            List<ContactEmail> emails = sortedEmails(
+                    emailsByContactId.getOrDefault(contact.getId(), Collections.emptyList())
+            );
+            List<ContactPhone> phones = sortedPhones(
+                    phonesByContactId.getOrDefault(contact.getId(), Collections.emptyList())
+            );
 
-            String email = emails.isEmpty() ? "" : emails.get(0).getEmail();
-            String emailType = emails.isEmpty() ? "" : emails.get(0).getType().name();
-            String phone = phones.isEmpty() ? "" : phones.get(0).getPhoneNumber();
-            String phoneType = phones.isEmpty() ? "" : phones.get(0).getType().name();
+            String email = joinMultiValue(emails.stream().map(ContactEmail::getEmail).toList());
+            String emailType = joinMultiValue(emails.stream().map(value -> value.getType().name()).toList());
+            String phone = joinMultiValue(phones.stream().map(ContactPhone::getPhoneNumber).toList());
+            String phoneType = joinMultiValue(phones.stream().map(value -> value.getType().name()).toList());
 
             csv.append(escapeCsv(contact.getFirstName())).append(',');
             csv.append(escapeCsv(contact.getLastName())).append(',');
@@ -119,10 +128,10 @@ public class ContactCsvService {
         ContactImportResponse response = new ContactImportResponse();
         response.setErrors(new ArrayList<>());
 
-        try (BufferedReader reader = new BufferedReader(
+        try (PushbackReader reader = new PushbackReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
-            String headerLine = reader.readLine();
+            String headerLine = readCsvRecord(reader);
             if (headerLine == null) {
                 throw new InvalidCsvFileException("CSV file is empty");
             }
@@ -132,7 +141,7 @@ public class ContactCsvService {
             String line;
             int rowNumber = 1;
 
-            while ((line = reader.readLine()) != null) {
+            while ((line = readCsvRecord(reader)) != null) {
                 rowNumber++;
                 if (line.isBlank()) {
                     continue;
@@ -190,21 +199,94 @@ public class ContactCsvService {
         request.setLastName(lastName);
         request.setTitle(title.isEmpty() ? null : title);
 
-        if (!email.isEmpty()) {
-            ContactEmailRequest emailRequest = new ContactEmailRequest();
-            emailRequest.setEmail(email);
-            emailRequest.setType(parseEmailType(emailTypeValue));
-            request.getEmails().add(emailRequest);
-        }
-
-        if (!phone.isEmpty()) {
-            ContactPhoneRequest phoneRequest = new ContactPhoneRequest();
-            phoneRequest.setPhoneNumber(phone);
-            phoneRequest.setType(parsePhoneType(phoneTypeValue));
-            request.getPhones().add(phoneRequest);
-        }
+        request.getEmails().addAll(parseEmailRequests(email, emailTypeValue));
+        request.getPhones().addAll(parsePhoneRequests(phone, phoneTypeValue));
 
         return request;
+    }
+
+    private List<ContactEmailRequest> parseEmailRequests(String emailValue, String emailTypeValue) {
+        List<String> emails = splitMultiValue(emailValue);
+        if (emails.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> emailTypes = splitMultiValue(emailTypeValue);
+        List<ContactEmailRequest> requests = new ArrayList<>();
+
+        for (int index = 0; index < emails.size(); index++) {
+            ContactEmailRequest emailRequest = new ContactEmailRequest();
+            emailRequest.setEmail(emails.get(index));
+            emailRequest.setType(parseEmailType(resolveTypeValue(emailTypes, index, EmailType.WORK)));
+            requests.add(emailRequest);
+        }
+
+        return requests;
+    }
+
+    private List<ContactPhoneRequest> parsePhoneRequests(String phoneValue, String phoneTypeValue) {
+        List<String> phones = splitMultiValue(phoneValue);
+        if (phones.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> phoneTypes = splitMultiValue(phoneTypeValue);
+        List<ContactPhoneRequest> requests = new ArrayList<>();
+
+        for (int index = 0; index < phones.size(); index++) {
+            ContactPhoneRequest phoneRequest = new ContactPhoneRequest();
+            phoneRequest.setPhoneNumber(phones.get(index));
+            phoneRequest.setType(parsePhoneType(resolveTypeValue(phoneTypes, index, PhoneType.HOME)));
+            requests.add(phoneRequest);
+        }
+
+        return requests;
+    }
+
+    private String resolveTypeValue(List<String> typeValues, int index, Enum<?> defaultType) {
+        if (typeValues.isEmpty()) {
+            return defaultType.name();
+        }
+
+        if (typeValues.size() == 1) {
+            return typeValues.get(0);
+        }
+
+        if (index < typeValues.size()) {
+            return typeValues.get(index);
+        }
+
+        return defaultType.name();
+    }
+
+    private String joinMultiValue(List<String> values) {
+        return values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .collect(Collectors.joining(MULTI_VALUE_SEPARATOR));
+    }
+
+    private List<String> splitMultiValue(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+
+        return List.of(value.split("\\" + MULTI_VALUE_SEPARATOR, -1))
+                .stream()
+                .map(String::trim)
+                .filter(part -> !part.isEmpty())
+                .toList();
+    }
+
+    private List<ContactEmail> sortedEmails(List<ContactEmail> emails) {
+        return emails.stream()
+                .sorted(Comparator.comparing(ContactEmail::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    private List<ContactPhone> sortedPhones(List<ContactPhone> phones) {
+        return phones.stream()
+                .sorted(Comparator.comparing(ContactPhone::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
     }
 
     private EmailType parseEmailType(String value) {
@@ -219,6 +301,64 @@ public class ContactCsvService {
             return PhoneType.HOME;
         }
         return PhoneType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
+
+    private String readCsvRecord(Reader reader) throws IOException {
+        PushbackReader pushbackReader = reader instanceof PushbackReader existingReader
+                ? existingReader
+                : new PushbackReader(reader);
+
+        StringBuilder record = new StringBuilder();
+        boolean inQuotes = false;
+        boolean started = false;
+
+        int read;
+        while ((read = pushbackReader.read()) != -1) {
+            char character = (char) read;
+            started = true;
+
+            if (character == '"') {
+                if (inQuotes) {
+                    int next = pushbackReader.read();
+                    if (next == '"') {
+                        record.append('"');
+                        record.append('"');
+                    } else {
+                        if (next != -1) {
+                            pushbackReader.unread(next);
+                        }
+                        inQuotes = false;
+                        record.append('"');
+                    }
+                } else {
+                    inQuotes = true;
+                    record.append('"');
+                }
+                continue;
+            }
+
+            if (!inQuotes && (character == '\n' || character == '\r')) {
+                if (character == '\r') {
+                    int next = pushbackReader.read();
+                    if (next != '\n' && next != -1) {
+                        pushbackReader.unread(next);
+                    }
+                }
+                return record.toString();
+            }
+
+            record.append(character);
+        }
+
+        if (!started) {
+            return null;
+        }
+
+        if (inQuotes) {
+            throw new InvalidCsvFileException("CSV file contains an unterminated quoted field");
+        }
+
+        return record.toString();
     }
 
     private List<String> parseCsvLine(String line) {
@@ -257,15 +397,33 @@ public class ContactCsvService {
             return "";
         }
 
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
+        String sanitized = neutralizeFormulaInjection(value);
+
+        if (sanitized.contains(",") || sanitized.contains("\"") || sanitized.contains("\n") || sanitized.contains("\r")) {
+            return "\"" + sanitized.replace("\"", "\"\"") + "\"";
+        }
+
+        return sanitized;
+    }
+
+    private String neutralizeFormulaInjection(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+
+        char firstCharacter = value.charAt(0);
+        if (firstCharacter == '=' || firstCharacter == '+' || firstCharacter == '-'
+                || firstCharacter == '@') {
+            return "'" + value;
         }
 
         return value;
     }
 
     private User getAuthenticatedUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = EmailNormalizer.normalize(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

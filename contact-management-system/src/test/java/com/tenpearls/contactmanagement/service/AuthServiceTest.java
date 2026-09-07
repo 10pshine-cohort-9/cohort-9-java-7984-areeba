@@ -23,6 +23,9 @@ import com.tenpearls.contactmanagement.security.JwtService;
 import java.util.Optional;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentCaptor.forClass;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -67,6 +70,42 @@ class AuthServiceTest {
     }
 
     @Test
+    void register_shouldPersistCanonicalEmail() {
+        RegisterRequest request = new RegisterRequest();
+        request.setEmail("  Test@Example.COM  ");
+        request.setPassword("Password123");
+
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encoded-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId(1L);
+            return savedUser;
+        });
+
+        RegisterResponse response = authService.register(request);
+
+        ArgumentCaptor<User> userCaptor = forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertEquals("test@example.com", userCaptor.getValue().getEmail());
+        assertEquals("test@example.com", response.getEmail());
+    }
+
+    @Test
+    void register_shouldRejectDuplicateEmailIgnoringCase() {
+        RegisterRequest request = new RegisterRequest();
+        request.setEmail("TEST@example.com");
+        request.setPassword("Password123");
+
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+
+        assertThrows(
+                EmailAlreadyRegisteredException.class,
+                () -> authService.register(request)
+        );
+    }
+
+    @Test
     void register_shouldRejectDuplicateEmail() {
         RegisterRequest request = new RegisterRequest();
         request.setEmail("test@example.com");
@@ -105,6 +144,28 @@ class AuthServiceTest {
         assertEquals("jwt-token", response.getToken());
 
         verify(passwordEncoder).matches(request.getPassword(), user.getPassword());
+    }
+
+    @Test
+    void login_shouldNormalizeEmailBeforeLookup() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("TEST@example.com");
+        request.setPassword("Password123");
+
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setPassword("encoded-password");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getPassword(), user.getPassword())).thenReturn(true);
+        when(jwtService.generateToken(user.getEmail(), user.getId(), user.getTokenVersion()))
+                .thenReturn("jwt-token");
+
+        LoginResponse response = authService.login(request);
+
+        assertEquals("test@example.com", response.getEmail());
+        verify(userRepository).findByEmail("test@example.com");
     }
 
     @Test
